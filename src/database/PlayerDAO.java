@@ -34,7 +34,7 @@ private static final ScheduledExecutorService scheduler = Executors.newScheduled
     public static boolean createNewPlayer(int userId, String name, byte gender, int hair) {
         try {
             JSONArray dataArray = new JSONArray();
-            int greenGem = (Manager.TEST) ? 1000000000 : 1000;
+            int greenGem = 1000;
             dataArray.add(2000); //vàng
             dataArray.add(greenGem); //ngọc xanh
             dataArray.add(0); //hồng ngọc
@@ -223,7 +223,7 @@ private static final ScheduledExecutorService scheduler = Executors.newScheduled
             dataArray.add(0); //
             String itemTime = dataArray.toJSONString();
             dataArray.clear();
-            int taskIndex = (Manager.TEST) ? 28 : 0;
+            int taskIndex = 0;
             dataArray.add(taskIndex); //id nhiệm vụ
             dataArray.add(0); //index nhiệm vụ con
             dataArray.add(0); //số lượng đã làm
