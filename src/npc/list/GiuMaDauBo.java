@@ -31,7 +31,7 @@ public class GiuMaDauBo extends Npc {
             case 0 -> {
             }
             case 2 -> {
-                if (player.nPoint.power < 80_000_000_000L) {
+                if (player.nPoint.power < 60_000_000_000L) {
                     Service.gI().sendThongBao(player, "KHÔNG ĐỦ SỨC MẠNH");
                     return;
                 }
