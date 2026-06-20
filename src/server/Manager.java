@@ -854,6 +854,12 @@ public final class Manager {
         if ((value = properties.get("server.daoautoupdater")) != null) {
             DAO_AUTO_UPDATER = String.valueOf(value).equalsIgnoreCase("true");
         }
+        AutoMaintenance.loadConfig(
+                properties.get("server.automaintenance"),
+                properties.get("server.automaintenance.hour"),
+                properties.get("server.automaintenance.minute"),
+                properties.get("server.automaintenance.countdown")
+        );
     }
 
     /**

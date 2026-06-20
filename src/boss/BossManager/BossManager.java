@@ -124,6 +124,10 @@ public class BossManager implements Runnable {
 
     protected final List<Boss> bosses;
 
+    public List<Boss> getBosses() {
+        return bosses;
+    }
+
     public void addBoss(Boss boss) {
         this.bosses.add(boss);
     }

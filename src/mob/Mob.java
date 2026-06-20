@@ -18,6 +18,7 @@ import player.Pet;
 import player.Player;
 import network.Message;
 import java.io.IOException;
+import server.DropRateConfig;
 import server.Maintenance;
 import server.Manager;
 import utils.Util;
@@ -552,7 +553,7 @@ public class Mob {
         }
 
         if (MapService.gI().isMap3Planets(mapid)) {
-            if (Util.isTrue(1, 20)) {
+            if (DropRateConfig.roll(DropRateConfig.GOLD_3_PLANETS_NUM, DropRateConfig.GOLD_3_PLANETS_DEN)) {
                 int vang = Util.nextInt(500, 3000);
                 if (vang < 1000) {
                     list.add(new ItemMap(zone, 76, vang, x, yEnd, player.id));
@@ -564,7 +565,7 @@ public class Mob {
             }
         }
         if (MapService.gI().isMapNappa(mapid)) {
-            if (Util.isTrue(1, 100)) {
+            if (DropRateConfig.roll(DropRateConfig.GOLD_MAP_NUM, DropRateConfig.GOLD_MAP_DEN)) {
                 int vang = Util.nextInt(2000, 6000);
                 if (vang < 3000) {
                     list.add(new ItemMap(zone, 188, vang, x, yEnd, player.id));
@@ -576,7 +577,7 @@ public class Mob {
             }
         }
         if (MapService.gI().isMapCold(mapid)) {
-            if (Util.isTrue(1, 100)){
+            if (DropRateConfig.roll(DropRateConfig.GOLD_MAP_NUM, DropRateConfig.GOLD_MAP_DEN)){
                 int vang = Util.nextInt(8000, 18000);
                 if (vang < 10000) {
                     list.add(new ItemMap(zone, 189, vang, x, yEnd, player.id)); // Rơi vàng cấp 189
@@ -588,7 +589,7 @@ public class Mob {
             }
         }
         if (MapService.gI().isMapTuongLai(mapid)) {
-            if (Util.isTrue(1, 100)) {
+            if (DropRateConfig.roll(DropRateConfig.GOLD_MAP_NUM, DropRateConfig.GOLD_MAP_DEN)) {
                 int vang = Util.nextInt(5000, 12000);
                 if (vang < 6000) {
                     list.add(new ItemMap(zone, 188, vang, x, yEnd, player.id));
@@ -600,7 +601,7 @@ public class Mob {
             }
         }
         if (MapService.gI().isMapPhoBan(mapid)) {
-            if (Util.isTrue(1, 100)) {
+            if (DropRateConfig.roll(DropRateConfig.GOLD_MAP_NUM, DropRateConfig.GOLD_MAP_DEN)) {
                 int vang = Util.nextInt(8000, 20000);
                 if (vang < 6000) {
                     list.add(new ItemMap(zone, 188, vang, x, yEnd, player.id)); 
@@ -611,28 +612,28 @@ public class Mob {
                 }
             }
         }
-        if (Util.isTrue(1, 1000000)) {
+        if (DropRateConfig.roll(DropRateConfig.NGOC_NUM, DropRateConfig.NGOC_DEN)) {
             int ngoc = Util.nextInt(1, 1);
             list.add(new ItemMap(zone, 77, ngoc, x, yEnd, player.id));
         }
-        // if (((Util.isTrue(50, 5000)))
-        //     && MapService.gI().isMapUpSKH(mapid)) {
-        //     short itTemp = (short) ItemService.gI().randTempItemKichHoat(player.gender);
-        //     ItemMap it = new ItemMap(zone, itTemp, 1, x, yEnd, player.id);
-        //     List<Item.ItemOption> ops = ItemService.gI().getListOptionItemShop(itTemp);
-        //     if (!ops.isEmpty()) {
-        //         it.options = ops;
-        //     }
-        //     int[] opsrand = ItemService.gI().randOptionItemKichHoatNew(player.gender);
-        //     it.options.add(new Item.ItemOption(opsrand[0], 0));
-        //     it.options.add(new Item.ItemOption(opsrand[1], 0));
-        //     it.options.add(new Item.ItemOption(opsrand[2], 0));
-        //     it.options.add(new Item.ItemOption(opsrand[3], 0));
-        //     it.options.add(new Item.ItemOption(30, 0));
-        //     list.add(it);
-        //     ChatGlobalService.gI().ThongBaoRoiDo(player, "[Hệ Thống] " + player.name + " vừa nhặt được " + it.itemTemplate.name + " sét kích hoạt" + " tại " + this.zone.map.mapName + " khu " + this.zone.zoneId);
-        // }
-        if (((Util.isTrue(1, 5000)))
+        if (DropRateConfig.roll(DropRateConfig.SET_SKH_NUM, DropRateConfig.SET_SKH_DEN)
+                && MapService.gI().isMapUpSKH(mapid)) {
+            short itTemp = (short) ItemService.gI().randTempItemKichHoat(player.gender);
+            ItemMap it = new ItemMap(zone, itTemp, 1, x, yEnd, player.id);
+            List<Item.ItemOption> ops = ItemService.gI().getListOptionItemShop(itTemp);
+            if (!ops.isEmpty()) {
+                it.options = ops;
+            }
+            int[] opsrand = ItemService.gI().randOptionItemKichHoatNew(player.gender);
+            it.options.add(new Item.ItemOption(opsrand[0], 0));
+            it.options.add(new Item.ItemOption(opsrand[1], 0));
+            it.options.add(new Item.ItemOption(opsrand[2], 0));
+            it.options.add(new Item.ItemOption(opsrand[3], 0));
+            it.options.add(new Item.ItemOption(30, 0));
+            list.add(it);
+            ChatGlobalService.gI().ThongBaoRoiDo(player, "[Hệ Thống] " + player.name + " vừa nhặt được " + it.itemTemplate.name + " sét kích hoạt" + " tại " + this.zone.map.mapName + " khu " + this.zone.zoneId);
+        }
+        if (((DropRateConfig.roll(DropRateConfig.ITEM_SKH_NUM, DropRateConfig.ITEM_SKH_DEN)))
             && MapService.gI().isMapUpSKH(mapid)) {
             short itTemp = (short) ItemService.gI().randTempItemDoSao(player.gender);
             ItemMap it = new ItemMap(zone, itTemp, 1, x, yEnd, player.id);
@@ -660,7 +661,7 @@ public class Mob {
                 //  ChatGlobalService.gI().ThongBaoRoiDo(player, "[Hệ Thống] " + player.name + " vừa nhặt được " + it.itemTemplate.name + " Sét Kích Hoạt");
             }
         }
-        if (((Util.isTrue(50, 50000)))
+        if (((DropRateConfig.roll(DropRateConfig.DO_SAO_SKH_NUM, DropRateConfig.DO_SAO_SKH_DEN)))
                 && MapService.gI().isMapUpSKH(mapid)) {
             int baseRate = 50;
             int powerReduction = (int) Math.min(player.nPoint.power / 100000, 5) * 20;
@@ -698,7 +699,7 @@ public class Mob {
             if (player.isPet) {
                 player = ((Pet) player).master;
             }
-            if (Util.isTrue(1, 50000)) {
+            if (DropRateConfig.roll(DropRateConfig.DO_TL_COLD_NUM, DropRateConfig.DO_TL_COLD_DEN)) {
                 ItemMap it = ItemService.gI().randDoTL(this.zone, 1, x, yEnd, player.id);
                 list.add(it);
                 ChatGlobalService.gI().ThongBaoRoiDo(player, "[ Hệ Thống ] " + player.name + " vừa nhặt được " + it.itemTemplate.name + " tại " + this.zone.map.mapName + " khu " + this.zone.zoneId);
@@ -719,13 +720,13 @@ public class Mob {
             }
         }
         if (MapService.gI().isMapDoanhTrai(mapid)
-                && (Util.isTrue(10, 100))) {
+                && DropRateConfig.roll(DropRateConfig.MANH_DA_VUN_NUM, DropRateConfig.MANH_DA_VUN_DEN)) {
             ItemMap it = new ItemMap(zone, 225, 1, x, yEnd, player.id);
             it.options.add(new Item.ItemOption(74, 0));
             list.add(it);
         }
         if (MapService.gI().isMap3Planets(mapid)
-                && (Util.isTrue(10, 100))) {
+                && DropRateConfig.roll(DropRateConfig.MANH_DA_VUN_NUM, DropRateConfig.MANH_DA_VUN_DEN)) {
             ItemMap it = new ItemMap(zone, 225, 1, x, yEnd, player.id);
             it.options.add(new Item.ItemOption(74, 0));
             list.add(it);
@@ -734,7 +735,7 @@ public class Mob {
                 || MapService.gI().isMapNappa(mapid)
                 || MapService.gI().isMapTuongLai(mapid)
                 || MapService.gI().isMapCold(mapid)) {
-            if (Util.isTrue(10, 70)
+            if (DropRateConfig.roll(DropRateConfig.NGOC_RONG_NUM, DropRateConfig.NGOC_RONG_DEN)
                     || (player.isActive() && Util.isTrue(1, 100))) {
                 int rand = Util.nextInt(0, 1);
                 ItemMap it = new ItemMap(zone, 19 + rand, 1, x, yEnd, player.id);

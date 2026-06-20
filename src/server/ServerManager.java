@@ -28,38 +28,12 @@ import managers.SuperRankManager;
 import network.inetwork.ISessionAcceptHandler;
 import boss.BossManager.BrolyManager;
 import boss.BossManager.FinalBossManager;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
 import database.DatabaseManager;
 import database.PlayerDAO;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.SwingConstants;
-import network.Message;
 import network.SessionManager;
 import player.Player;
 import player.Service.ClanService;
-import utils.SystemMetrics;
+import javax.swing.SwingUtilities;
 
 public class ServerManager {
 
@@ -95,7 +69,11 @@ public class ServerManager {
 
     public static void main(String[] args) {
         timeStart = TimeUtil.getTimeNow("dd/MM/yyyy HH:mm:ss");
-        ServerManager.gI().run();
+        SwingUtilities.invokeLater(() -> {
+            ServerPanel panel = new ServerPanel();
+            panel.setVisible(true);
+        });
+        new Thread(() -> ServerManager.gI().run(), "GameServer").start();
     }
 
    public void run() {
@@ -119,6 +97,7 @@ public class ServerManager {
         new Thread(TreasureUnderSeaManager.gI(), "Update treasure under sea boss").start();
         new Thread(SnakeWayManager.gI(), "Update snake way boss").start();
         new Thread(GasDestroyManager.gI(), "Update gas destroy boss").start();
+        new Thread(AutoMaintenance.gI(), "Auto Maintenance").start();
     }
 
     
