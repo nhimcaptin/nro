@@ -66,14 +66,20 @@ public class LamPhepNhapDa {
             return;
         }
 
-        if (item1.quantity < REQUIRED_QUANTITY_ITEM1 || item2.quantity < REQUIRED_QUANTITY_ITEM2) {
+        Item manhDaVun = getItemById(item1, item2, ITEM_ID_NGOC_TRANG);
+        Item binhNuocPhep = getItemById(item1, item2, ITEM_ID_DA_TRUNG);
+        if (manhDaVun == null || binhNuocPhep == null) {
+            Service.gI().sendThongBao(player, "Nguyên liệu không hợp lệ!");
+            return;
+        }
+        if (manhDaVun.quantity < REQUIRED_QUANTITY_ITEM1 || binhNuocPhep.quantity < REQUIRED_QUANTITY_ITEM2) {
             Service.gI().sendThongBao(player, "Không đủ nguyên liệu để thực hiện!");
             return;
         }
 
         player.inventory.gold -= GOLD_TAO_DA;
-        InventoryService.gI().subQuantityItemsBag(player, item1, REQUIRED_QUANTITY_ITEM1);
-        InventoryService.gI().subQuantityItemsBag(player, item2, REQUIRED_QUANTITY_ITEM2);
+        InventoryService.gI().subQuantityItemsBag(player, manhDaVun, REQUIRED_QUANTITY_ITEM1);
+        InventoryService.gI().subQuantityItemsBag(player, binhNuocPhep, REQUIRED_QUANTITY_ITEM2);
 
         if (Util.isTrue(RATIO_TAO_DA, 100)) {
             int randomId = Util.nextInt(RANDOM_ITEM_ID_START, RANDOM_ITEM_ID_END + 1);
@@ -94,7 +100,20 @@ public class LamPhepNhapDa {
     }
 
     private static boolean isValidCombination(Item item1, Item item2) {
-        return (item1.template.id == ITEM_ID_NGOC_TRANG && item2.template.id == ITEM_ID_DA_TRUNG) ||
-               (item1.template.id == ITEM_ID_DA_TRUNG && item2.template.id == ITEM_ID_NGOC_TRANG);
+        if (item1 == null || item2 == null || !item1.isNotNullItem() || !item2.isNotNullItem()) {
+            return false;
+        }
+        return (item1.template.id == ITEM_ID_NGOC_TRANG && item2.template.id == ITEM_ID_DA_TRUNG)
+                || (item1.template.id == ITEM_ID_DA_TRUNG && item2.template.id == ITEM_ID_NGOC_TRANG);
+    }
+
+    private static Item getItemById(Item item1, Item item2, int itemId) {
+        if (item1 != null && item1.isNotNullItem() && item1.template.id == itemId) {
+            return item1;
+        }
+        if (item2 != null && item2.isNotNullItem() && item2.template.id == itemId) {
+            return item2;
+        }
+        return null;
     }
 }

@@ -151,6 +151,9 @@ public class CombineService {
             case DAP_SET_KICH_HOAT_VIP:
                 NangCapKichHoatVip.showInfoCombine(player);
                 break;
+            case LAM_PHEP_NHAP_DA:
+                LamPhepNhapDa.showInfoCombine(player);
+                break;
         }
     }
 
@@ -229,6 +232,9 @@ public class CombineService {
                 break;
             case DAP_SET_KICH_HOAT_VIP:
                 NangCapKichHoatVip.startCombine(player);
+                break;
+            case LAM_PHEP_NHAP_DA:
+                LamPhepNhapDa.lamphepnhapda(player);
                 break;
         }
 
