@@ -1,8 +1,8 @@
 package server;
 
 import boss.Boss;
-import boss.BossManager.BossRegistry;
 import boss.BossManager.BossManager;
+import boss.BossManager.BossRegistry;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -24,21 +24,28 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import network.SessionManager;
 import utils.SystemMetrics;
 
 public class ServerPanel extends JFrame {
 
+    private static ServerPanel instance;
+
     private final JLabel lblOnline = new JLabel("Online: 0", SwingConstants.CENTER);
     private final JLabel lblSessions = new JLabel("Sessions: 0", SwingConstants.CENTER);
     private final JLabel lblThreads = new JLabel("Threads: 0", SwingConstants.CENTER);
-    private final JLabel lblStatus = new JLabel("Đang chạy", SwingConstants.CENTER);
-    private final JLabel lblUptime = new JLabel("", SwingConstants.CENTER);
+    private final JLabel lblStatus = new JLabel("Chưa chạy", SwingConstants.CENTER);
+    private final JLabel lblUptime = new JLabel("Chưa khởi động", SwingConstants.CENTER);
     private final JTextArea txtMetrics = new JTextArea();
     private final DefaultTableModel bossModel = new DefaultTableModel(
             new String[]{"Tên Boss", "Trạng thái", "Map", "Khu", "HP"}, 0) {
@@ -48,7 +55,10 @@ public class ServerPanel extends JFrame {
         }
     };
     private final JTable bossTable = new JTable(bossModel);
+    private final JTextPane txtConsole = new JTextPane();
     private final JTextField txtMaintMinutes = new JTextField("5", 4);
+
+    private static final int MAX_CONSOLE_LINES = 1500;
 
     private final RateField expRate = new RateField("EXP server (x)", DropRateConfig.RATE_EXP, 1, 100);
     private final RateField manhDa = new RateField("Mảnh đá vụn", DropRateConfig.MANH_DA_VUN_NUM, DropRateConfig.MANH_DA_VUN_DEN);
@@ -62,10 +72,40 @@ public class ServerPanel extends JFrame {
     private final RateField doTlCold = new RateField("Đồ TL map Cold", DropRateConfig.DO_TL_COLD_NUM, DropRateConfig.DO_TL_COLD_DEN);
     private final RateField bossReward = new RateField("Boss reward", BossManager.ratioReward, 1, 100);
 
+    public static ServerPanel gI() {
+        if (instance == null) {
+            instance = new ServerPanel();
+        }
+        return instance;
+    }
+
     public ServerPanel() {
         super(ServerManager.NAME_SERVER + " - Control Panel");
         initUi();
         startRefreshTimer();
+    }
+
+    public void bootstrap() {
+        PanelLogStream.bind(this);
+        appendLog("=== " + ServerManager.NAME_SERVER + " - Control Panel ===");
+        appendLog("Port: " + ServerManager.PORT + " | Auto maintenance: " + AutoMaintenance.getScheduleText());
+        startServerFromPanel();
+    }
+
+    public void appendLog(String line) {
+        SwingUtilities.invokeLater(() -> {
+            StyledDocument doc = txtConsole.getStyledDocument();
+            SimpleAttributeSet attrs = new SimpleAttributeSet();
+            StyleConstants.setFontFamily(attrs, "Consolas");
+            StyleConstants.setFontSize(attrs, 13);
+            StyleConstants.setForeground(attrs, new Color(229, 231, 235));
+            try {
+                doc.insertString(doc.getLength(), line + "\n", attrs);
+                trimConsole(doc);
+                txtConsole.setCaretPosition(doc.getLength());
+            } catch (BadLocationException ignored) {
+            }
+        });
     }
 
     private void initUi() {
@@ -80,17 +120,18 @@ public class ServerPanel extends JFrame {
             }
         });
 
-        JPanel header = buildHeader();
-        JTabbedPane tabs = buildTabs();
+        txtConsole.setEditable(false);
+        txtConsole.setBackground(new Color(17, 24, 39));
+        txtConsole.setFont(new Font("Consolas", Font.PLAIN, 13));
 
-        add(header, BorderLayout.NORTH);
-        add(tabs, BorderLayout.CENTER);
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildTabs(), BorderLayout.CENTER);
 
         styleHeaderLabel(lblOnline);
         styleHeaderLabel(lblSessions);
         styleHeaderLabel(lblThreads);
-        lblStatus.setForeground(new Color(34, 197, 94));
         lblStatus.setFont(lblStatus.getFont().deriveFont(Font.BOLD, 14f));
+        updateServerStatusLabel();
     }
 
     private JPanel buildHeader() {
@@ -102,20 +143,32 @@ public class ServerPanel extends JFrame {
         stats.add(lblSessions);
         stats.add(lblThreads);
         stats.add(lblStatus);
-
-        lblUptime.setText("Khởi động: " + ServerManager.timeStart);
         header.add(stats);
-        header.add(lblUptime);
+
+        JPanel footer = new JPanel(new BorderLayout(8, 0));
+        footer.add(lblUptime, BorderLayout.CENTER);
+        header.add(footer);
         return header;
     }
 
     private JTabbedPane buildTabs() {
         JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Console", buildConsoleTab());
         tabs.addTab("Tổng quan", buildOverviewTab());
         tabs.addTab("Boss đang sống", buildBossTab());
         tabs.addTab("Tỷ lệ rơi đồ", buildDropRateTab());
         tabs.addTab("Bảo trì", buildMaintenanceTab());
         return tabs;
+    }
+
+    private JPanel buildConsoleTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        JLabel hint = new JLabel("Log server");
+        panel.add(hint, BorderLayout.NORTH);
+        panel.add(new JScrollPane(txtConsole), BorderLayout.CENTER);
+        return panel;
     }
 
     private JPanel buildOverviewTab() {
@@ -200,7 +253,7 @@ public class ServerPanel extends JFrame {
                 + "Countdown: gửi thông báo trong game trước khi tắt.\n"
                 + "Bảo trì tự động: " + AutoMaintenance.getScheduleText() + "\n"
                 + "(Chỉnh trong Config.properties)\n"
-                + "Đóng cửa sổ panel cũng sẽ hỏi bảo trì server."
+                + "Đóng cửa sổ panel = bảo trì và tắt server."
         );
         help.setEditable(false);
         help.setLineWrap(true);
@@ -210,6 +263,53 @@ public class ServerPanel extends JFrame {
         panel.add(actions, BorderLayout.NORTH);
         panel.add(help, BorderLayout.CENTER);
         return panel;
+    }
+
+    private void trimConsole(StyledDocument doc) throws BadLocationException {
+        int lines = doc.getLength() > 0 ? doc.getText(0, doc.getLength()).split("\n", -1).length : 0;
+        if (lines <= MAX_CONSOLE_LINES) {
+            return;
+        }
+        int removeUntil = 0;
+        int count = 0;
+        String text = doc.getText(0, doc.getLength());
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                count++;
+                if (count >= lines - MAX_CONSOLE_LINES) {
+                    removeUntil = i + 1;
+                    break;
+                }
+            }
+        }
+        if (removeUntil > 0) {
+            doc.remove(0, removeUntil);
+        }
+    }
+
+    private void startServerFromPanel() {
+        if (ServerManager.isRunning) {
+            return;
+        }
+        lblStatus.setText("Đang khởi động...");
+        lblStatus.setForeground(new Color(234, 179, 8));
+        appendLog("Đang khởi động server...");
+        ServerManager.startServer();
+        lblUptime.setText("Khởi động: " + ServerManager.timeStart);
+        appendLog("Lệnh start server đã gửi lúc " + ServerManager.timeStart);
+    }
+
+    private void updateServerStatusLabel() {
+        if (ServerManager.isRunning) {
+            lblStatus.setText("Đang chạy");
+            lblStatus.setForeground(new Color(34, 197, 94));
+        } else if (Maintenance.isRunning) {
+            lblStatus.setText("Đang bảo trì...");
+            lblStatus.setForeground(new Color(234, 179, 8));
+        } else {
+            lblStatus.setText("Chưa chạy");
+            lblStatus.setForeground(new Color(156, 163, 175));
+        }
     }
 
     private void saveDropRates() {
@@ -281,6 +381,11 @@ public class ServerPanel extends JFrame {
             dispose();
             return;
         }
+        if (!ServerManager.isRunning) {
+            dispose();
+            System.exit(0);
+            return;
+        }
         int confirm = JOptionPane.showConfirmDialog(
                 this,
                 "Bảo trì và tắt server?",
@@ -300,6 +405,12 @@ public class ServerPanel extends JFrame {
 
     private void refreshStats() {
         SwingUtilities.invokeLater(() -> {
+            updateServerStatusLabel();
+
+            if (!ServerManager.isRunning) {
+                return;
+            }
+
             int online = Client.gI().getPlayers().size();
             int sessions = SessionManager.gI().getNumSession();
 
@@ -323,6 +434,9 @@ public class ServerPanel extends JFrame {
 
     private void refreshBossTable() {
         bossModel.setRowCount(0);
+        if (!ServerManager.isRunning) {
+            return;
+        }
         List<Boss> bosses = BossRegistry.getAliveBosses();
         for (Boss boss : bosses) {
             String mapInfo = boss.zone != null

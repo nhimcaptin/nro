@@ -40,9 +40,9 @@ public class ServerManager {
     public static String timeStart;
 
     public static final Map<Object, Object> CLIENTS = new HashMap<>();
-    public static String NAME_SERVER = "Ngọc Rồng Black Goku"; // Tên Máy Chủ
-    public static String DOMAIN = "https://nroblackgoku.click/"; // Domain Truy Cập
-    public static String NAME = "NRO Black Goku"; // Name Khi Vào Giao Diện Game
+    public static String NAME_SERVER = "Ngọc Rồng Nhim"; // Tên Máy Chủ
+    public static String DOMAIN = "https://"; // Domain Truy Cập
+    public static String NAME = "NRO Nhim"; // Name Khi Vào Giao Diện Game
     public static String IP = "NgocRongOnline"; // IPs - Không Cần Sửa
     private static final int HTTP_PORT = 8080;
     private static final int MAX_REQ_PER_MINUTE = 20;
@@ -67,13 +67,20 @@ public class ServerManager {
         return instance;
     }
 
-    public static void main(String[] args) {
+    public static synchronized void startServer() {
+        if (isRunning) {
+            return;
+        }
         timeStart = TimeUtil.getTimeNow("dd/MM/yyyy HH:mm:ss");
-        SwingUtilities.invokeLater(() -> {
-            ServerPanel panel = new ServerPanel();
-            panel.setVisible(true);
-        });
         new Thread(() -> ServerManager.gI().run(), "GameServer").start();
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            ServerPanel panel = ServerPanel.gI();
+            panel.setVisible(true);
+            panel.bootstrap();
+        });
     }
 
    public void run() {

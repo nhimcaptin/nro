@@ -79,13 +79,6 @@ public class DatabaseManager {
             if ((value = properties.get("database.log")) != null) {
                 DatabaseManager.LOG_QUERY = Boolean.parseBoolean(String.valueOf(value));
             }
-               Logger.success("\u001B[31m███╗   ███╗███████╗██╗    ██╗ ██████╗ \n" +
-               "\u001B[32m████╗ ████║██╔════╝██║    ██║██╔═══██╗\n" +
-               "\u001B[33m██╔████╔██║█████╗  ██║ █╗ ██║██║   ██║\n" +
-               "\u001B[34m██║╚██╔╝██║██╔══╝  ██║███╗██║██║   ██║\n" +
-               "\u001B[35m██║ ╚═╝ ██║███████╗╚███╔███╔╝╚██████╔╝\n" +
-               "\u001B[36m╚═╝     ╚═╝╚══════╝ ╚══╝╚══╝  ╚═════╝ \n" +
-               "\u001B[0m"); // Reset màu
         } catch (final IOException | NumberFormatException ex) {
             Logger.log(Logger.RED, "Không thể load file properties!\n");
         } finally {

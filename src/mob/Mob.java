@@ -616,23 +616,23 @@ public class Mob {
             int ngoc = Util.nextInt(1, 1);
             list.add(new ItemMap(zone, 77, ngoc, x, yEnd, player.id));
         }
-        if (DropRateConfig.roll(DropRateConfig.SET_SKH_NUM, DropRateConfig.SET_SKH_DEN)
-                && MapService.gI().isMapUpSKH(mapid)) {
-            short itTemp = (short) ItemService.gI().randTempItemKichHoat(player.gender);
-            ItemMap it = new ItemMap(zone, itTemp, 1, x, yEnd, player.id);
-            List<Item.ItemOption> ops = ItemService.gI().getListOptionItemShop(itTemp);
-            if (!ops.isEmpty()) {
-                it.options = ops;
-            }
-            int[] opsrand = ItemService.gI().randOptionItemKichHoatNew(player.gender);
-            it.options.add(new Item.ItemOption(opsrand[0], 0));
-            it.options.add(new Item.ItemOption(opsrand[1], 0));
-            it.options.add(new Item.ItemOption(opsrand[2], 0));
-            it.options.add(new Item.ItemOption(opsrand[3], 0));
-            it.options.add(new Item.ItemOption(30, 0));
-            list.add(it);
-            ChatGlobalService.gI().ThongBaoRoiDo(player, "[Hệ Thống] " + player.name + " vừa nhặt được " + it.itemTemplate.name + " sét kích hoạt" + " tại " + this.zone.map.mapName + " khu " + this.zone.zoneId);
-        }
+        // if (DropRateConfig.roll(DropRateConfig.SET_SKH_NUM, DropRateConfig.SET_SKH_DEN)
+        //         && MapService.gI().isMapUpSKH(mapid)) {
+        //     short itTemp = (short) ItemService.gI().randTempItemKichHoat(player.gender);
+        //     ItemMap it = new ItemMap(zone, itTemp, 1, x, yEnd, player.id);
+        //     List<Item.ItemOption> ops = ItemService.gI().getListOptionItemShop(itTemp);
+        //     if (!ops.isEmpty()) {
+        //         it.options = ops;
+        //     }
+        //     int[] opsrand = ItemService.gI().randOptionItemKichHoatNew(player.gender);
+        //     it.options.add(new Item.ItemOption(opsrand[0], 0));
+        //     it.options.add(new Item.ItemOption(opsrand[1], 0));
+        //     it.options.add(new Item.ItemOption(opsrand[2], 0));
+        //     it.options.add(new Item.ItemOption(opsrand[3], 0));
+        //     it.options.add(new Item.ItemOption(30, 0));
+        //     list.add(it);
+        //     ChatGlobalService.gI().ThongBaoRoiDo(player, "[Hệ Thống] " + player.name + " vừa nhặt được " + it.itemTemplate.name + " sét kích hoạt" + " tại " + this.zone.map.mapName + " khu " + this.zone.zoneId);
+        // }
         if (((DropRateConfig.roll(DropRateConfig.ITEM_SKH_NUM, DropRateConfig.ITEM_SKH_DEN)))
             && MapService.gI().isMapUpSKH(mapid)) {
             short itTemp = (short) ItemService.gI().randTempItemDoSao(player.gender);
