@@ -75,6 +75,7 @@ public class Controller implements IMessageHandler {
         try {
             player = _session.player;
             byte cmd = _msg.command;
+            
             switch (cmd) {
                 case -100:
                     if (player == null) {
@@ -89,6 +90,7 @@ public class Controller implements IMessageHandler {
                         return;
                     }
                     byte action = _msg.reader().readByte();
+
                     switch (action) {
                         case 0:
                             short idItem = _msg.reader().readShort();

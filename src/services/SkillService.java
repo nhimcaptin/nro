@@ -87,14 +87,22 @@ public class SkillService {
             useSkillBuffToPlayer(player, plTarget);
             return true;
         }
+        // if ((player.effectSkill != null && player.effectSkill.isHaveEffectSkill()
+        //     && (player.playerSkill.skillSelect.template.id != Skill.TU_SAT
+        //     && player.playerSkill.skillSelect.template.id != Skill.QUA_CAU_KENH_KHI
+        //     && player.playerSkill.skillSelect.template.id != Skill.MAKANKOSAPPO))
+        //     || (plTarget != null && !canAttackPlayer(player, plTarget))
+        //     || (mobTarget != null && mobTarget.isDie())
+        //     || !canUseSkillWithMana(player) || !canUseSkillWithCooldown(player)) {
+        //     return false;
+        // }
         if ((player.effectSkill != null && player.effectSkill.isHaveEffectSkill()
-                && (player.playerSkill.skillSelect.template.id != Skill.TU_SAT
-                && player.playerSkill.skillSelect.template.id != Skill.QUA_CAU_KENH_KHI
-                && player.playerSkill.skillSelect.template.id != Skill.MAKANKOSAPPO))
-                || (plTarget != null && !canAttackPlayer(player, plTarget))
-                || (mobTarget != null && mobTarget.isDie())
-                || !canUseSkillWithMana(player) || !canUseSkillWithCooldown(player)) {
-            return false;
+            && (player.playerSkill.skillSelect.template.id != Skill.TU_SAT
+            && player.playerSkill.skillSelect.template.id != Skill.QUA_CAU_KENH_KHI
+            && player.playerSkill.skillSelect.template.id != Skill.MAKANKOSAPPO))
+            || (plTarget != null && !canAttackPlayer(player, plTarget))
+            || (mobTarget != null && mobTarget.isDie())) {
+                return false;
         }
         if (player.effectSkill != null && player.effectSkill.isHaveEffectSkill() && player.effectSkill.useTroi) {
             EffectSkillService.gI().removeUseTroi(player);
@@ -440,7 +448,7 @@ public class SkillService {
                     player.playerSkill.lastTimePrepareQCKK = System.currentTimeMillis();
                     sendPlayerPrepareSkill(player, 4000);
                 } else {
-                    player.playerSkill.prepareQCKK = false;
+                    player.playerSkill.prepareQCKK = false; 
                     mobs = new ArrayList<>();
                     if (plTarget != null) {
                         playerAttackPlayer(player, plTarget, false);
@@ -468,7 +476,6 @@ public class SkillService {
                         mob.injured(player, player.nPoint.getDameAttack(true), true);
                     }
                     PlayerService.gI().sendInfoHpMpMoney(player);
-                    affterUseSkill(player, player.playerSkill.skillSelect.template.id);
                 }
                 break;
             case Skill.MAKANKOSAPPO:
@@ -484,7 +491,6 @@ public class SkillService {
                     if (mobTarget != null) {
                         playerAttackMob(player, mobTarget, false, true);
                     }
-                    affterUseSkill(player, player.playerSkill.skillSelect.template.id);
                 }
                 PlayerService.gI().sendInfoHpMpMoney(player);
                 break;
