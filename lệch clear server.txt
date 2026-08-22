@@ -1,0 +1,28 @@
+USE nro;
+
+SELECT id, username, is_admin
+FROM account
+WHERE username = 'admin';
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+DELETE FROM shop_ky_gui;
+DELETE FROM super_rank;
+
+DELETE FROM player
+WHERE account_id <> (
+    SELECT id FROM account WHERE username = 'admin' LIMIT 1
+);
+
+DELETE FROM account
+WHERE username <> 'admin';
+
+UPDATE account
+SET is_admin = 1
+WHERE username = 'admin';
+
+ALTER TABLE shop_ky_gui AUTO_INCREMENT = 1;
+ALTER TABLE super_rank AUTO_INCREMENT = 1;
+ALTER TABLE player AUTO_INCREMENT = 1;
+
+SET FOREIGN_KEY_CHECKS = 1;
