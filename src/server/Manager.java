@@ -300,7 +300,7 @@ public final class Manager {
             if (rs.first()) {
                 Clan.NEXT_ID = rs.getInt("id") + 1;
             }
-            ps = ConnectionDatabase.prepareStatement("select * from skill_template order by nclass_id, slot");
+            ps = ConnectionDatabase.prepareStatement("select * from skill_template where type <> 4 order by nclass_id, slot");
             rs = ps.executeQuery();
             byte nClassId = -1;
             NClass nClass = null;

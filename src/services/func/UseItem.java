@@ -1391,19 +1391,27 @@ public class UseItem {
                     break;
                 }
             }
-            player.nPoint.setHp(player.nPoint.hp + hpKiHoiPhuc);
-            player.nPoint.setMp(player.nPoint.mp + hpKiHoiPhuc);
+            int hpBefore = player.nPoint.hp;
+            int hpAfter = (int) Math.min(player.nPoint.hpMax, (long) player.nPoint.hp + hpKiHoiPhuc);
+            player.nPoint.setHP(hpAfter);
+            player.nPoint.setMP((long) player.nPoint.mp + hpKiHoiPhuc);
             PlayerService.gI().sendInfoHpMp(player);
-            Service.gI().sendInfoPlayerEatPea(player);
+            if (hpAfter > hpBefore) {
+                Service.gI().sendInfoPlayerEatPea(player);
+            }
             if (player.pet != null && player.zone.equals(player.pet.zone) && !player.pet.isDie()) {
                 int statima = 100 * lvPea;
                 player.pet.nPoint.stamina += statima;
                 if (player.pet.nPoint.stamina > player.pet.nPoint.maxStamina) {
                     player.pet.nPoint.stamina = player.pet.nPoint.maxStamina;
                 }
-                player.pet.nPoint.setHp(player.pet.nPoint.hp + hpKiHoiPhuc);
-                player.pet.nPoint.setMp(player.pet.nPoint.mp + hpKiHoiPhuc);
-                Service.gI().sendInfoPlayerEatPea(player.pet);
+                int petHpBefore = player.pet.nPoint.hp;
+                int petHpAfter = (int) Math.min(player.pet.nPoint.hpMax, (long) player.pet.nPoint.hp + hpKiHoiPhuc);
+                player.pet.nPoint.setHP(petHpAfter);
+                player.pet.nPoint.setMP((long) player.pet.nPoint.mp + hpKiHoiPhuc);
+                if (petHpAfter > petHpBefore) {
+                    Service.gI().sendInfoPlayerEatPea(player.pet);
+                }
                 Service.gI().chatJustForMe(player, player.pet, "Cám ơn sư phụ");
             }
 

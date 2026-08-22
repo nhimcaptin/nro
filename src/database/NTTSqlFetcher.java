@@ -671,6 +671,9 @@ public class NTTSqlFetcher {
                 JSONArray dataSkill = (JSONArray) JSONValue.parse(String.valueOf(dataArray.get(i)));
                 int tempId = Integer.parseInt(String.valueOf(dataSkill.get(0)));
                 byte point = Byte.parseByte(String.valueOf(dataSkill.get(1)));
+                if (SkillUtil.findSkillTemplate(tempId) == null) {
+                    continue;
+                }
                 Skill skill;
                 if (point != 0) {
                     skill = SkillUtil.createSkill(tempId, point);
@@ -772,11 +775,17 @@ public class NTTSqlFetcher {
                     JSONArray skillTemp = (JSONArray) JSONValue.parse(String.valueOf(dataArray.get(i)));
                     int tempId = Integer.parseInt(String.valueOf(skillTemp.get(0)));
                     byte point = Byte.parseByte(String.valueOf(skillTemp.get(1)));
+                    if (SkillUtil.findSkillTemplate(tempId) == null) {
+                        continue;
+                    }
                     Skill skill;
                     if (point != 0) {
                         skill = SkillUtil.createSkill(tempId, point);
                     } else {
                         skill = SkillUtil.createSkillLevel0(tempId);
+                    }
+                    if (skill == null) {
+                        continue;
                     }
                     if (skillTemp.size() > 3) {
                         skill.lastTimeUseThisSkill = Long.parseLong(String.valueOf(skillTemp.get(2)));
@@ -790,14 +799,8 @@ public class NTTSqlFetcher {
                     }
                     pet.playerSkill.skills.add(skill);
                 }
-                if (pet.playerSkill.skills.size() < 5) {
-                    pet.playerSkill.skills.add(4, SkillUtil.createSkillLevel0(-1));
-                }
-                if (pet.playerSkill.skills.size() < 6) {
-                    pet.playerSkill.skills.add(5, SkillUtil.createSkillLevel0(-1));
-                }
-                if (pet.playerSkill.skills.size() < 7) {
-                    pet.playerSkill.skills.add(6, SkillUtil.createSkillLevel0(-1));
+                while (pet.playerSkill.skills.size() < 7) {
+                    pet.playerSkill.skills.add(SkillUtil.createSkillLevel0(-1));
                 }
                 pet.nPoint.hp = hp;
                 pet.nPoint.mp = mp;
