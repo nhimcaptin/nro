@@ -16,6 +16,11 @@ import consts.ConstAchievement;
 import database.NTTSqlFetcher;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.util.Arrays;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.ArrayList;
 import java.util.List;
 import item.Item;
@@ -45,6 +50,9 @@ import npc.NonInteractiveNPC;
 import npc.Npc;
 
 public class Service {
+
+    private static final byte[] CLIENT_TOKEN_KEY = "NRO_SECRET_KEY_2024_CHANGE_ME".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    private static final long CLIENT_TOKEN_VALIDITY_MS = 30000L;
 
     public static final int[] flagTempId = {363, 364, 365, 366, 367, 368, 369, 370, 371, 519, 520, 747};
     public static final int[] flagIconId = {2761, 2330, 2323, 2327, 2326, 2324, 2329, 2328, 2331, 4386, 4385, 2325};
@@ -1494,11 +1502,49 @@ public class Service {
             String platform = msg.reader().readUTF();
             String[] arrPlatform = platform.split("\\|");
             session.version = Integer.parseInt(arrPlatform[1].replaceAll("\\.", ""));
+
+            //Chặn mod
+            int tokenLength = msg.reader().readUnsignedShort();
+            byte[] token = new byte[tokenLength];
+            msg.reader().readFully(token);
+            if (!isValidClientToken(token)) {
+                session.disconnect();
+                return;
+            }
+            if (msg.reader().available() >= Short.BYTES) {
+                int infoLength = msg.reader().readUnsignedShort();
+                if (infoLength > msg.reader().available()) {
+                    session.disconnect();
+                    return;
+                }
+                msg.reader().skipBytes(infoLength);
+            }
+            // end chặn mod
         } catch (Exception e) {
+            session.disconnect();
         } finally {
             msg.cleanup();
         }
         DataGame.sendLinkIP(session);
+    }
+
+    // Chặn mod
+    private boolean isValidClientToken(byte[] token) {
+        if (token.length != 40) {
+            return false;
+        }
+        long timestamp = ByteBuffer.wrap(token, 0, Long.BYTES).getLong();
+        if (Math.abs(System.currentTimeMillis() - timestamp) > CLIENT_TOKEN_VALIDITY_MS) {
+            return false;
+        }
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(CLIENT_TOKEN_KEY, "HmacSHA256"));
+            byte[] expected = mac.doFinal(Arrays.copyOf(token, Long.BYTES));
+            return MessageDigest.isEqual(expected, Arrays.copyOfRange(token, Long.BYTES, token.length));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public void dropSatellite(Player pl, Item item, Zone map, int x, int y) {
