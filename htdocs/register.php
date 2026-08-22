@@ -1,10 +1,15 @@
 <?php
+session_start();
 require 'config.php';
 
 $errors = [];
 $success = '';
+if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+        $errors[] = 'Phiên đăng ký không hợp lệ.';
+    }
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
     $repass   = trim($_POST['repass'] ?? '');
@@ -14,6 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($password !== $repass) {
         $errors[] = 'Mật khẩu nhập lại không khớp.';
+    }
+    if (strlen($password) < 6) {
+        $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự.';
     }
     if (strlen($username) < 3 || strlen($username) > 20) {
         $errors[] = 'Tài khoản phải từ 3 đến 20 ký tự.';
@@ -55,54 +63,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Đăng ký tài khoản NRO</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #0b1220; color: #e5e7eb; }
-        .container { max-width: 420px; margin: 60px auto; background: #111827; padding: 24px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,.5); }
-        h1 { text-align: center; margin-bottom: 20px; color: #38bdf8; }
-        label { display:block; margin-top:10px; font-size:14px; }
-        input[type=text], input[type=password] {
-            width:100%; padding:8px 10px; margin-top:4px;
-            border-radius:4px; border:1px solid #374151; background:#020617; color:#e5e7eb;
-        }
-        button {
-            margin-top:18px; width:100%; padding:10px;
-            background:#22c55e; border:none; border-radius:4px;
-            color:#022c22; font-weight:bold; cursor:pointer;
-        }
-        button:hover { background:#16a34a; }
-        .msg-error { background:#7f1d1d; padding:8px; margin-top:10px; border-radius:4px; font-size:13px; }
-        .msg-success { background:#064e3b; padding:8px; margin-top:10px; border-radius:4px; font-size:13px; }
-    </style>
+    <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
-<div class="container">
-    <h1>Đăng ký tài khoản</h1>
+<div class="auth-wrap"><div class="auth-card">
+    <div class="kicker">Khởi đầu hành trình</div><h1>Đăng ký</h1><p>Tạo tài khoản và bước vào vũ trụ chiến binh.</p>
 
     <?php if ($errors): ?>
-        <div class="msg-error">
+        <div class="alert error">
             <?php foreach ($errors as $e) echo htmlspecialchars($e) . '<br>'; ?>
         </div>
     <?php endif; ?>
 
     <?php if ($success): ?>
-        <div class="msg-success">
+        <div class="alert success">
             <?= htmlspecialchars($success) ?>
         </div>
     <?php endif; ?>
 
-    <form method="post">
-        <label>Tài khoản</label>
-        <input type="text" name="username" required>
-
-        <label>Mật khẩu</label>
-        <input type="password" name="password" required>
-
-        <label>Nhập lại mật khẩu</label>
-        <input type="password" name="repass" required>
-
-        <button type="submit">Đăng ký</button>
-    </form>
-</div>
+    <form method="post"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+        <div class="field"><label for="username">Tài khoản</label><input id="username" type="text" name="username" maxlength="20" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"></div>
+        <div class="field"><label for="password">Mật khẩu</label><input id="password" type="password" name="password" required></div>
+        <div class="field"><label for="repass">Nhập lại mật khẩu</label><input id="repass" type="password" name="repass" required></div>
+        <button class="btn" type="submit">Bắt đầu chơi</button>
+    </form><div class="auth-foot"><a href="index.php">← Trang chủ</a> · Đã có tài khoản? <a href="login.php">Đăng nhập</a></div>
+</div></div>
 </body>
 </html>
