@@ -75,7 +75,8 @@ public class ShopDAO {
 
     private static void loadItemShop(Connection con, TabShop tabShop) {
         try {
-            PreparedStatement ps = con.prepareStatement("select * from item_shop where is_sell = 1 and tab_id = ? "
+            // Bùa trí tuệ x3 x4
+            PreparedStatement ps = con.prepareStatement("select * from item_shop where is_sell = 1 and temp_id not in (671, 672) and tab_id = ? "
                     + "order by create_time desc");
             int id = tabShop.id;
             if (id >= 41 && id <= 43){//10,11,12
