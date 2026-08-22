@@ -32,11 +32,17 @@ public class QuyLaoKame extends Npc {
 
     @Override
     public void openBaseMenu(Player player) {
+        if ((this.mapId == 165 || this.mapId == 166) && canOpenNpc(player)) {
+            this.createOtherMenu(player, ConstNpc.IGNORE_MENU, "Con muốn về đảo Kame không?", "Về đảo Kame");
+            return;
+        }
         Item ruacon = InventoryService.gI().findItemBag(player, 874);
         if (canOpenNpc(player)) {
             ArrayList<String> menu = new ArrayList<>();
             if (!player.canReward) {
                 menu.add("Nói\nchuyện");
+                menu.add("Farm\nngọc xanh");
+                menu.add("Farm\nthỏi vàng");
                 if (ruacon != null && ruacon.quantity >= 1) {
                     menu.add("Giao\nRùa con");
                 }
@@ -53,6 +59,10 @@ public class QuyLaoKame extends Npc {
     @Override
     public void confirmMenu(Player player, int select) {
         if (!canOpenNpc(player)) return;
+        if ((this.mapId == 165 || this.mapId == 166) && select == 0) {
+            ChangeMapService.gI().changeMapBySpaceShip(player, 5, -1, -1);
+            return;
+        }
         if (player.canReward) {
             RewardService.gI().rewardLancon(player);
             return;
@@ -88,7 +98,11 @@ public class QuyLaoKame extends Npc {
                         }
                     }
                     this.createOtherMenu(player, 0, "Chào con, ta rất vui khi gặp con\nCon muốn làm gì nào ?", menu.toArray(new String[0]));
+                } else if (select == 1) {
+                    ChangeMapService.gI().changeMapNonSpaceship(player, 165, 60, 816);
                 } else if (select == 2) {
+                    ChangeMapService.gI().changeMapNonSpaceship(player, 166, 111, 792);
+                } else if (select == 3) {
                     Item ruacon = InventoryService.gI().findItemBag(player, 874);
                     if (ruacon != null && ruacon.quantity >= 1) {
                         this.createOtherMenu(player, 1, "Cảm ơn cậu đã cứu con rùa của ta\nĐể cảm ơn ta sẽ tặng cậu món quà.", "Nhận quà", "Đóng");

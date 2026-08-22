@@ -479,6 +479,14 @@ public class MapService {
         return mapId == 155;
     }
 
+    public boolean isMapFarmNgocXanh(int mapId) {
+        return mapId == 165;
+    }
+
+    public boolean isMapFarmThoiVang(int mapId) {
+        return mapId == 166;
+    }
+
     public boolean isMapHuyDiet(int mapId) {
         return mapId >= 169 && mapId <= 171;
     }

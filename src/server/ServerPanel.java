@@ -70,6 +70,8 @@ public class ServerPanel extends JFrame {
     private final RateField goldMap = new RateField("Vàng map khác", DropRateConfig.GOLD_MAP_NUM, DropRateConfig.GOLD_MAP_DEN);
     private final RateField ngocRong = new RateField("Ngọc rồng 1-7 sao", DropRateConfig.NGOC_RONG_NUM, DropRateConfig.NGOC_RONG_DEN);
     private final RateField doTlCold = new RateField("Đồ TL map Cold", DropRateConfig.DO_TL_COLD_NUM, DropRateConfig.DO_TL_COLD_DEN);
+    private final RateField farmNgoc = new RateField("Farm ngọc xanh", DropRateConfig.FARM_NGOC_NUM, DropRateConfig.FARM_NGOC_DEN);
+    private final RateField farmThoiVang = new RateField("Farm thỏi vàng", DropRateConfig.FARM_THOI_VANG_NUM, DropRateConfig.FARM_THOI_VANG_DEN);
     private final RateField bossReward = new RateField("Boss reward", BossManager.ratioReward, 1, 100);
 
     public static ServerPanel gI() {
@@ -211,7 +213,7 @@ public class ServerPanel extends JFrame {
 
         JPanel form = new JPanel(new GridLayout(0, 1, 6, 6));
         for (RateField field : new RateField[]{
-            expRate, manhDa, setSkh, itemSkh, doSaoSkh, ngoc, gold3Planets, goldMap, ngocRong, doTlCold, bossReward
+            expRate, manhDa, setSkh, itemSkh, doSaoSkh, ngoc, gold3Planets, goldMap, ngocRong, doTlCold, farmNgoc, farmThoiVang, bossReward
         }) {
             form.add(field.buildRow());
         }
@@ -334,6 +336,10 @@ public class ServerPanel extends JFrame {
         DropRateConfig.NGOC_RONG_DEN = ngocRong.readDen();
         DropRateConfig.DO_TL_COLD_NUM = doTlCold.readNum();
         DropRateConfig.DO_TL_COLD_DEN = doTlCold.readDen();
+        DropRateConfig.FARM_NGOC_NUM = farmNgoc.readNum();
+        DropRateConfig.FARM_NGOC_DEN = farmNgoc.readDen();
+        DropRateConfig.FARM_THOI_VANG_NUM = farmThoiVang.readNum();
+        DropRateConfig.FARM_THOI_VANG_DEN = farmThoiVang.readDen();
         BossManager.ratioReward = (byte) bossReward.readIntValue();
 
         JOptionPane.showMessageDialog(this, "Đã lưu tỷ lệ rơi đồ!", "Thành công", JOptionPane.INFORMATION_MESSAGE);

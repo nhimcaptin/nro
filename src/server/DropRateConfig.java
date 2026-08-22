@@ -40,6 +40,12 @@ public final class DropRateConfig {
     public static int DO_TL_COLD_NUM = 1;
     public static int DO_TL_COLD_DEN = 50_000;
 
+    public static int FARM_NGOC_NUM = 50;
+    public static int FARM_NGOC_DEN = 100;
+
+    public static int FARM_THOI_VANG_NUM = 20;
+    public static int FARM_THOI_VANG_DEN = 100;
+
     public static int BOSS_REWARD = 10;
 
     public static boolean roll(int num, int den) {

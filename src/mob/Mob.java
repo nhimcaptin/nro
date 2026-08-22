@@ -523,6 +523,19 @@ public class Mob {
             return list;
         }
         int mapid = player.zone.map.mapId;
+        if (MapService.gI().isMapFarmNgocXanh(mapid)) {
+            if (DropRateConfig.roll(DropRateConfig.FARM_NGOC_NUM, DropRateConfig.FARM_NGOC_DEN)) {
+                int ngoc = Util.nextInt(1, 5);
+                list.add(new ItemMap(zone, 77, ngoc, x, yEnd, player.id));
+            }
+            return list;
+        }
+        if (MapService.gI().isMapFarmThoiVang(mapid)) {
+            if (DropRateConfig.roll(DropRateConfig.FARM_THOI_VANG_NUM, DropRateConfig.FARM_THOI_VANG_DEN)) {
+                list.add(new ItemMap(zone, 457, 1, x, yEnd, player.id));
+            }
+            return list;
+        }
         if (player.itemTime.isUseMayDo
                 && (Util.isTrue(20, 100))
                 && this.tempId > 57 && this.tempId < 66) {
