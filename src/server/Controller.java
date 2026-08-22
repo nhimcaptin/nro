@@ -903,15 +903,17 @@ public class Controller implements IMessageHandler {
     }
 
     private void sendThongBaoServer(Player player) {
-        Service.gI().sendThongBaoFromAdmin(player, 
-                   "Tải game tại trang chủ không sài các phiên bản ngoài\n"
-                + "có nguy cơ tiềm ẩn dính keylog mất tài khoản\n"
-                + "đội ngũ admin sẽ không chịu trách nghiệm\n"
-                + "nếu anh em sài phiên bản ngoài hãy bỏ ngay\n"
-                + "tải game Tại " + ServerManager.DOMAIN + "\n"
-                + "hiện tại game chỉ có phiên bản apk, pc, ios\n"
-                + "đăng ký tài khoản mật khẩu đủ 8 ký tự không sẽ dễ bị check tài khoản dẫn đến nguy cơ mất tài khoản\n"
-                + "có thể đổi mật khẩu tại npc ở nhà\n"
-                + "chi tiết xem tại diễn đàn, fanpage,zalo");
+        Service.gI().sendThongBaoFromAdmin(player, "Thông báo đây là version test của game để anh em trải nghiệm hết các tính năngtrước khi ra bản chính thức\n"
+                + "Admin: Nhims\n");
+        // Service.gI().sendThongBaoFromAdmin(player, 
+        //            "Tải game tại trang chủ không sài các phiên bản ngoài\n"
+        //         + "có nguy cơ tiềm ẩn dính keylog mất tài khoản\n"
+        //         + "đội ngũ admin sẽ không chịu trách nghiệm\n"
+        //         + "nếu anh em sài phiên bản ngoài hãy bỏ ngay\n"
+        //         + "tải game Tại " + ServerManager.DOMAIN + "\n"
+        //         + "hiện tại game chỉ có phiên bản apk, pc, ios\n"
+        //         + "đăng ký tài khoản mật khẩu đủ 8 ký tự không sẽ dễ bị check tài khoản dẫn đến nguy cơ mất tài khoản\n"
+        //         + "có thể đổi mật khẩu tại npc ở nhà\n"
+        //         + "chi tiết xem tại diễn đàn, fanpage,zalo");
     }
 }
