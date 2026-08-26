@@ -9,5 +9,5 @@ If Not fso.FileExists(jar) Then
     WScript.Quit 1
 End If
 
-cmd = "javaw -server -Dfile.encoding=UTF-8 -Xms1000M -Xmx1000M -jar """ & jar & """"
+cmd = """" & folder & "\run.bat"""
 shell.Run cmd, 0, False

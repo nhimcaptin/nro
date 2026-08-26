@@ -6,5 +6,9 @@ if not exist "dist\NgocRongOnline.jar" (
     pause
     exit /b 1
 )
-start "" javaw -server -Dfile.encoding=UTF-8 -Xms1000M -Xmx1000M -jar dist\NgocRongOnline.jar
-exit
+:restart
+echo Dang khoi dong server...
+java -server -Dfile.encoding=UTF-8 -Xms1000M -Xmx1000M -jar "dist\NgocRongOnline.jar"
+echo Server da dung, se khoi dong lai sau 5 giay...
+timeout /t 5 /nobreak >nul
+goto restart
