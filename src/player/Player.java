@@ -71,7 +71,6 @@ import player.Service.ClanService;
 import task.BadgesTask;
 import task.BadgesTaskService;
 import utils.SkillUtil;
-import utils.TimeUtil;
 
 public class Player implements Runnable {
 
@@ -413,15 +412,15 @@ public class Player implements Runnable {
                     if (satellite != null) {
                         satellite.update();
                     }
-                    if (!this.isPl() || this.isDie() || this.effectSkill == null || this.effectSkill.isChibi) {
-                        return;
-                    }
-                    if (Util.canDoWithTime(lastTimeChibi, 300000) && Util.isTrue(1, 1000)
-                            && !MapService.gI().isMapBlackBallWar(this.zone.map.mapId)) {
-                        EffectSkillService.gI().setChibi(this, 600000);
-                        lastTimeChibi = System.currentTimeMillis();
-                        Logger.success("[" + TimeUtil.getCurrHour() + ":" + TimeUtil.getCurrMin() + "] - Chibi activated for Player -> " + this.name + " " + "\n");
-                    }
+                    // if (!this.isPl() || this.isDie() || this.effectSkill == null || this.effectSkill.isChibi) {
+                    //     return;
+                    // }
+                    // if (Util.canDoWithTime(lastTimeChibi, 300000) && Util.isTrue(1, 1000)
+                    //         && !MapService.gI().isMapBlackBallWar(this.zone.map.mapId)) {
+                    //     EffectSkillService.gI().setChibi(this, 600000);
+                    //     lastTimeChibi = System.currentTimeMillis();
+                    //     Logger.success("[" + TimeUtil.getCurrHour() + ":" + TimeUtil.getCurrMin() + "] - Chibi activated for Player -> " + this.name + " " + "\n");
+                    // }
                     if (this.isPl() && !this.isDie() && this.effectSkill != null && this.effectSkill.isChibi && Util.canDoWithTime(lastTimeUpdateChibi, 1000)) {
                         if (this.typeChibi == 1) {
                             if (this.nPoint.mp < this.nPoint.mpMax) {

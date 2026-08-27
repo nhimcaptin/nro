@@ -340,16 +340,16 @@ public class BossManager implements Runnable {
                     new ThuyTinh();
                 case BossID.LAN_CON ->
                     new LanCon();
-                case BossID.SOI_HEC_QUYN1 ->
-                    new SoiHecQuyn();
-                case BossID.O_DO1 ->
-                    new Odo();
+                // case BossID.SOI_HEC_QUYN1 ->
+                //     new SoiHecQuyn();
+                // case BossID.O_DO1 ->
+                //     new Odo();
                 case BossID.Virut ->
                     new Virut();
                 case BossID.BLACK_GOKU ->
                     new BlackGoku();
-                case BossID.AN_TROM ->
-                    new AnTrom();
+                // case BossID.AN_TROM ->
+                //     new AnTrom();
                 case BossID.BABY ->
                     new Baby();
                 case BossID.BROLY_BASE ->
