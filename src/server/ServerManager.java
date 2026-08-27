@@ -166,6 +166,10 @@ public class ServerManager {
         }
     }
     public void close() {
+        close(0);
+    }
+
+    public void close(int exitCode) {
         isRunning = false;
         try {
             ClanService.gI().close();
@@ -179,6 +183,6 @@ public class ServerManager {
         }
         Client.gI().close();
         Logger.success("SUCCESSFULLY MAINTENANCE!\n");
-        System.exit(0);
+        System.exit(exitCode);
     }
 }

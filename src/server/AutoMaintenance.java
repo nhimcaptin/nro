@@ -1,7 +1,7 @@
 package server;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import utils.Logger;
 
 public class AutoMaintenance extends Thread {
@@ -12,7 +12,7 @@ public class AutoMaintenance extends Thread {
     public static int COUNTDOWN_SECONDS = 900;
 
     private static AutoMaintenance instance;
-    private LocalDate lastTriggeredDate;
+    private LocalDateTime nextCountdownAt;
 
     private AutoMaintenance() {
         super("AutoMaintenance");
@@ -56,24 +56,30 @@ public class AutoMaintenance extends Thread {
     }
 
     private void checkSchedule() {
-        if (!ENABLED || Maintenance.isRunning) {
+        if (!ENABLED) {
             return;
         }
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDate today = now.toLocalDate();
-        if (now.getHour() != HOUR || now.getMinute() != MINUTE) {
+        if (nextCountdownAt == null) {
+            nextCountdownAt = getNextCountdownAt(now);
             return;
         }
-        if (today.equals(lastTriggeredDate)) {
+        if (now.isBefore(nextCountdownAt) || Maintenance.isRunning) {
             return;
         }
 
-        lastTriggeredDate = today;
-        Logger.log(Logger.YELLOW, "AUTO MAINTENANCE AT "
+        nextCountdownAt = nextCountdownAt.plusDays(1);
+        Logger.log(Logger.YELLOW, "AUTO MAINTENANCE SCHEDULED FOR "
                 + String.format("%02d:%02d", HOUR, MINUTE)
                 + " - COUNTDOWN " + COUNTDOWN_SECONDS + "s\n");
-        Maintenance.gI().startNew(COUNTDOWN_SECONDS);
+        Maintenance.gI().startNew(COUNTDOWN_SECONDS, true);
+    }
+
+    private LocalDateTime getNextCountdownAt(LocalDateTime now) {
+        LocalDateTime restartAt = now.toLocalDate().atTime(LocalTime.of(HOUR, MINUTE));
+        LocalDateTime countdownAt = restartAt.minusSeconds(COUNTDOWN_SECONDS);
+        return now.isBefore(countdownAt) ? countdownAt : countdownAt.plusDays(1);
     }
 
     public static String getScheduleText() {

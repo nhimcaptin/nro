@@ -10,6 +10,7 @@ public class Maintenance extends Thread {
     private static Maintenance i;
 
     private int time;
+    private int exitCode;
 
     private Maintenance() {
 
@@ -31,9 +32,14 @@ public class Maintenance extends Thread {
     }
 
     public void startNew(int min) {
+        startNew(min, false);
+    }
+
+    public void startNew(int min, boolean restartAfterShutdown) {
         if (!isRunning) {
             isRunning = true;
             this.time = min;
+            this.exitCode = restartAfterShutdown ? 10 : 0;
             Executors.newSingleThreadExecutor().submit(Maintenance.gI(), "Thread Bảo Trì");
         }
     }
@@ -42,7 +48,7 @@ public class Maintenance extends Thread {
         if (!isRunning) {
             isRunning = true;
             Logger.log(Logger.YELLOW, "BEGIN MAINTENANCE\n");
-            ServerManager.gI().close();
+            ServerManager.gI().close(exitCode);
         }
     }
 
@@ -89,7 +95,7 @@ public class Maintenance extends Thread {
             }
         }
         Logger.log(Logger.YELLOW, "BEGIN MAINTENANCE\n");
-        ServerManager.gI().close();
+        ServerManager.gI().close(exitCode);
     }
 
 }
