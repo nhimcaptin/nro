@@ -114,16 +114,13 @@ public class ChangeMapService {
      */
     public void openZoneUI(Player pl) {
         if (pl.zone == null) {
-            Service.gI().sendThongBaoOK(pl, "Không thể đổi khu vực trong map này");
             return;
         }
         if (!pl.isAdmin()) {
             if (MapService.gI().isMapOffline(pl.zone.map.mapId)) {
-                Service.gI().sendThongBaoOK(pl, "Không thể đổi khu vực trong map này");
                 return;
             }
             if (MapService.gI().isMapPhoBan(pl.zone.map.mapId)) {
-                Service.gI().sendThongBaoOK(pl, "Không thể đổi khu vực trong map này");
                 return;
             }
         }
