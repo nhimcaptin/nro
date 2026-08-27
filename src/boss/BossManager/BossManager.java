@@ -436,11 +436,19 @@ public class BossManager implements Runnable {
         while (ServerManager.isRunning) {
             try {
                 long st = System.currentTimeMillis();
-                for (Boss boss : this.bosses) {
-                    boss.update();
+                for (Boss boss : new ArrayList<>(this.bosses)) {
+                    try {
+                        boss.update();
+                    } catch (Exception e) {
+                        Logger.logException(BossManager.class, e);
+                    }
                 }
-                Thread.sleep(150 - (System.currentTimeMillis() - st));
-            } catch (Exception ignored) {
+                Thread.sleep(Math.max(1, 150 - (System.currentTimeMillis() - st)));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception e) {
+                Logger.logException(BossManager.class, e);
             }
         }
     }
