@@ -40,6 +40,7 @@ CREATE TABLE `account` (
   `last_time_logout` timestamp NOT NULL DEFAULT '2002-07-30 17:00:00',
   `ip_address` varchar(50) DEFAULT NULL,
   `active` int(11) NOT NULL DEFAULT 1,
+  `discord_id` varchar(32) DEFAULT NULL,
   `thoi_vang` int(11) NOT NULL DEFAULT 0,
   `server_login` int(11) NOT NULL DEFAULT -1,
   `bd_player` double DEFAULT 1,
@@ -8310,32 +8311,6 @@ INSERT INTO `radar` (`id`, `iconId`, `rank`, `max`, `type`, `mob_id`, `body`, `n
 (859, 1568, 4, 120, 1, 1, '[{\"head\":144, \"body\":145, \"leg\":146, \"bag\":-1}]', 'Thẻ Độc Nhãn', 'Đầu não của Red Ribbon. Bị chột một mắt, Lúc nhỏ bị mọi người chê là \'thằng lùn\'', '[{\"id\": 94, \"param\": 5, \"activeCard\": 0},\r\n{\"id\": 77, \"param\": 5, \"activeCard\": 1},\r\n{\"id\": 103, \"param\": 5, \"activeCard\": 2}]', -1, 0, -1),
 (956, 8935, 4, 120, 1, 1, '[{\"head\":994, \"body\":995, \"leg\":996, \"bag\":-1}]', 'Thẻ Đội Trưởng Vàng', 'Đội trưởng vàng là 1 con hổ hình người chắc nịch cơ thể được bao phủ bởi bộ lông vàng, Goku đã đấm hắn ra khỏi máy bay của mình khi đang bay ở giữa không trung.', '[{\"id\": 94, \"param\": 5, \"activeCard\": 0},\r\n{\"id\": 77, \"param\": 5, \"activeCard\": 1},\r\n{\"id\": 103, \"param\": 5, \"activeCard\": 2}]', -1, 0, 0);
 
--- --------------------------------------------------------
-
---
--- Table structure for table `settings`
---
-
-CREATE TABLE `settings` (
-  `Title` varchar(100) DEFAULT 'Nguyen Duc Kien',
-  `Description` longtext DEFAULT NULL,
-  `Keywords` longtext DEFAULT NULL,
-  `SiteKey` varchar(100) DEFAULT NULL,
-  `SecretKey` varchar(100) DEFAULT NULL,
-  `ServerName` varchar(100) DEFAULT NULL,
-  `Fanpage` varchar(100) DEFAULT NULL,
-  `Group` varchar(100) DEFAULT NULL,
-  `Zalo` varchar(100) DEFAULT NULL,
-  `EmailSupport` varchar(50) DEFAULT NULL,
-  `AccountBank` varchar(50) DEFAULT NULL,
-  `PasswordBank` varchar(50) DEFAULT NULL,
-  `NumberBank` int(11) DEFAULT NULL,
-  `NameBank` varchar(50) DEFAULT NULL,
-  `Android` varchar(50) DEFAULT NULL,
-  `Windows` varchar(50) DEFAULT NULL,
-  `IPhone` varchar(50) DEFAULT NULL,
-  `Java` varchar(50) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -8860,7 +8835,14 @@ INSERT INTO `task_sub_template` (`task_main_id`, `NAME`, `max_count`, `notify`, 
 --
 ALTER TABLE `account`
   ADD PRIMARY KEY (`id`) USING BTREE,
-  ADD UNIQUE KEY `username` (`username`) USING BTREE;
+  ADD UNIQUE KEY `username` (`username`) USING BTREE,
+  ADD KEY `idx_account_discord_id` (`discord_id`) USING BTREE;
+
+CREATE TABLE `discord_identity` (
+  `discord_id` varchar(32) NOT NULL,
+  `create_time` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`discord_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Indexes for table `achievement_template`

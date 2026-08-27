@@ -7,6 +7,10 @@ if (!empty($_SESSION['username'])) {
     exit;
 }
 $errors = [];
+$verified = ($_GET['verified'] ?? '') === '1';
+if ($verified) {
+    echo '<script>window.addEventListener("DOMContentLoaded", function () { alert("Xác thực Discord thành công! Tài khoản đã được kích hoạt."); history.replaceState({}, document.title, "login.php"); });</script>';
+}
 if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) $errors[] = 'Phiên đăng nhập không hợp lệ.';

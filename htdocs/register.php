@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email    = '';
         $ban      = 0;
         $is_admin = 0;
-        $active   = 1;
+        $active   = 0; // Activated only after Discord verification.
 
         $stmt = $mysqli->prepare(
             'INSERT INTO account (username, password, email, ban, is_admin, active)
@@ -51,10 +51,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param('sssiii', $username, $password, $email, $ban, $is_admin, $active);
 
         if ($stmt->execute()) {
+            $_SESSION['discord_verify_account_id'] = (int) $mysqli->insert_id;
+            $_SESSION['discord_verify_username'] = $username;
+            $stmt->close();
+            header('Location: discord-verify.php');
+            exit;
+        } else {
+            $errors[] = 'Không thể tạo tài khoản. Vui lòng thử lại.';
+        }
+        /*
             $success = 'Đăng ký thành công! Bạn có thể vào game và đăng nhập.';
         } else {
             $errors[] = 'Có lỗi xảy ra khi tạo tài khoản: ' . $stmt->error;
         }
+        */
         $stmt->close();
     }
 }

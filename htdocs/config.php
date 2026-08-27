@@ -10,3 +10,8 @@ if ($mysqli->connect_errno) {
 }
 
 $mysqli->set_charset('utf8mb4');
+
+$discordGuildId = '1542423954017489017';
+$discordClientId = '1542423037737963540';
+$discordClientSecret = '78LenIy2kMcNitooYFBXEs8ZD2bvzk1U';
+$discordRedirectUri = 'http://localhost/discord-verify.php';

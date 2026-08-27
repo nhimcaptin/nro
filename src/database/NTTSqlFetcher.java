@@ -84,6 +84,11 @@ public class NTTSqlFetcher {
 
                 if (rs.getBoolean("ban")) {
                     Service.gI().sendThongBaoOK(session, "Tài khoản này đang bị khóa. Liên hệ Admin để biết thêm thông tin");
+                } else if (!session.actived) {
+                    Service.gI().sendThongBaoOK(session,
+                            "T\u00e0i kho\u1ea3n ch\u01b0a x\u00e1c th\u1ef1c Discord. Vui l\u00f2ng x\u00e1c th\u1ef1c tr\u00ean trang web tr\u01b0\u1edbc khi v\u00e0o game.");
+                    Service.gI().sendLoginFail(session, false);
+                    return null;
                 } else if (secondsPass1 < Manager.SECOND_WAIT_LOGIN) {
                     if (secondsPass < secondsPass1) {
                         Service.gI().sendWaitToLogin(session, Manager.SECOND_WAIT_LOGIN - secondsPass);
