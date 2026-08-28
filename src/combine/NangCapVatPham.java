@@ -20,23 +20,84 @@ public class NangCapVatPham {
     public static final String MESSAGE_NGOC_ROI_DO = "Chúc mừng %s vừa nâng cấp %s thành công lên +%d!";
     
     public static void showInfoCombine(Player player) {
-        if (player.combineNew.itemsCombine.size() >= 2 && player.combineNew.itemsCombine.size() < 4) {
-            if (player.combineNew.itemsCombine.stream().filter(item -> item.isNotNullItem() && item.template.type < 5).count() < 1) {
-                CombineService.gI().baHatMit.createOtherMenu(player, ConstNpc.IGNORE_MENU, "Thiếu đồ nâng cấp", "Đóng");
-                return;
-            }
-            if (player.combineNew.itemsCombine.stream().filter(item -> item.isNotNullItem() && item.template.type == 14).count() < 1) {
-                CombineService.gI().baHatMit.createOtherMenu(player, ConstNpc.IGNORE_MENU, "Thiếu đá nâng cấp", "Đóng");
-                return;
-            }
-            if (player.combineNew.itemsCombine.size() == 3 && player.combineNew.itemsCombine.stream().filter(item -> item.isNotNullItem() && item.template.id == 987).count() < 1) {
-                CombineService.gI().baHatMit.createOtherMenu(player, ConstNpc.IGNORE_MENU, "Thiếu đồ nâng cấp", "Đóng");
-                return;
-            }
-        } else {
+        if (player.combineNew.itemsCombine.size() < 2 || player.combineNew.itemsCombine.size() > 3) {
+            showError(player, "Cần trang bị và đá nâng cấp phù hợp");
+            return;
         }
+
+        Item itemDo = null;
+        Item itemDNC = null;
+        Item itemDBV = null;
+        for (Item item : player.combineNew.itemsCombine) {
+            if (!item.isNotNullItem()) {
+                continue;
+            }
+            if (item.template.id == 987) {
+                itemDBV = item;
+            } else if (item.template.type < 5) {
+                itemDo = itemDo == null ? item : null;
+            } else if (item.template.type == 14) {
+                itemDNC = itemDNC == null ? item : null;
+            }
+        }
+
+        if (itemDo == null || itemDNC == null || !CombineSystem.isCoupleItemNangCapCheck(itemDo, itemDNC)) {
+            showError(player, "Trang bị và đá nâng cấp không phù hợp");
+            return;
+        }
+        if (player.combineNew.itemsCombine.size() == 3 && itemDBV == null) {
+            showError(player, "Vật phẩm thứ ba phải là Đá bảo vệ");
+            return;
+        }
+
+        int level = getLevel(itemDo);
+        if (level >= MAX_LEVEL_COMBINE) {
+            showError(player, "Trang bị đã đạt cấp tối đa +" + MAX_LEVEL_COMBINE);
+            return;
+        }
+
+        player.combineNew.countDaNangCap = CombineSystem.getCountDaNangCapDo(level);
+        player.combineNew.countDaBaoVe = (short) CombineSystem.getCountDaBaoVe(level);
+        player.combineNew.goldCombine = CombineSystem.getGoldNangCapDo(level);
+        player.combineNew.ratioCombine = (float) CombineSystem.getTileNangCapDo(level);
+
+        StringBuilder npcSay = new StringBuilder();
+        npcSay.append("|2|Nâng cấp ").append(itemDo.template.name)
+                .append(" từ +").append(level).append(" lên +").append(level + 1).append("\n")
+                .append("|2|Tỉ lệ thành công: ").append(player.combineNew.ratioCombine).append("%\n")
+                .append("|2|Cần ").append(player.combineNew.countDaNangCap).append(" ")
+                .append(itemDNC.template.name).append("\n")
+                .append("|2|Cần ").append(Util.numberToMoney(player.combineNew.goldCombine)).append(" vàng");
+        if (itemDBV != null) {
+            npcSay.append("\n|2|Dùng ").append(player.combineNew.countDaBaoVe)
+                    .append(" Đá bảo vệ khi thất bại");
+        }
+        if (itemDNC.quantity < player.combineNew.countDaNangCap) {
+            npcSay.append("\n|7|Không đủ đá nâng cấp");
+        }
+        if (itemDBV != null && itemDBV.quantity < player.combineNew.countDaBaoVe) {
+            npcSay.append("\n|7|Không đủ Đá bảo vệ");
+        }
+        if (player.inventory.gold < player.combineNew.goldCombine) {
+            npcSay.append("\n|7|Còn thiếu ")
+                    .append(Util.numberToMoney(player.combineNew.goldCombine - player.inventory.gold)).append(" vàng");
+        }
+        CombineService.gI().baHatMit.createOtherMenu(player, ConstNpc.MENU_START_COMBINE,
+                npcSay.toString(), "Nâng cấp", "Từ chối");
     }
 
+    private static int getLevel(Item item) {
+        for (Item.ItemOption option : item.itemOptions) {
+            if (option.optionTemplate.id == 72) {
+                return option.param;
+            }
+        }
+        return 0;
+    }
+
+    private static void showError(Player player, String message) {
+        CombineService.gI().baHatMit.createOtherMenu(player, ConstNpc.IGNORE_MENU, message, "Đóng");
+    }
     public static void nangCapVatPham(Player player) {
         if (player.combineNew.itemsCombine.size() >= 2 && player.combineNew.itemsCombine.size() < 4) {
             if (player.combineNew.itemsCombine.stream().filter(item -> item.isNotNullItem() && item.template.type < 5).count() != 1) {
