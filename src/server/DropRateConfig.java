@@ -43,7 +43,7 @@ public final class DropRateConfig {
     public static int FARM_NGOC_NUM = 50;
     public static int FARM_NGOC_DEN = 100;
 
-    public static int FARM_THOI_VANG_NUM = 20;
+    public static int FARM_THOI_VANG_NUM = 5;
     public static int FARM_THOI_VANG_DEN = 100;
 
     public static int BOSS_REWARD = 10;

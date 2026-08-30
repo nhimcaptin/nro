@@ -35,6 +35,8 @@ import utils.TimeUtil;
 
 public class Mob {
 
+    private static final long MAX_DAMAGE_FARM_THOI_VANG = 20_000L;
+
     public int id;
     public Zone zone;
     public int tempId;
@@ -138,6 +140,11 @@ public class Mob {
             if (plAtt != null && plAtt.isBoss && this.tempId > 0 && Util.isTrue(1, 2) && Util.canDoWithTime(lastTimeAttackPlayer, 2500)) {
                 this.mobAttackPlayer(plAtt);
                 lastTimeAttackPlayer = System.currentTimeMillis();
+            }
+
+            if (MapService.gI().isMapFarmThoiVang(this.zone.map.mapId)
+                    && damage > MAX_DAMAGE_FARM_THOI_VANG) {
+                damage = MAX_DAMAGE_FARM_THOI_VANG;
             }
 
             if (damage > 2_000_000_000) {
@@ -339,7 +346,14 @@ public class Mob {
     }
 
     private void mobAttackPlayer(Player player) {
-        int dameMob = this.point.getDameAttack();
+        int dameMob;
+        if (this.tempId == 117) {
+            int percentHp = Util.nextInt(this.pDame - 1, this.pDame + 1);
+            long damageByPlayerHp = (long) player.nPoint.hpMax * percentHp / 100;
+            dameMob = (int) Math.max(1, Math.min(damageByPlayerHp, Integer.MAX_VALUE));
+        } else {
+            dameMob = this.point.getDameAttack();
+        }
         if (player.charms != null && player.charms.tdDaTrau > System.currentTimeMillis()) {
             dameMob /= 2;
         }
