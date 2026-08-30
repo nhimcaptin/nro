@@ -10,6 +10,8 @@ import utils.Util;
 
 public class QuocVuong extends Npc {
 
+    private static final byte MAX_LIMIT_POWER = 8;
+
     public QuocVuong(int mapId, int status, int cx, int cy, int tempId, int avartar) {
         super(mapId, status, cx, cy, tempId, avartar);
     }
@@ -29,7 +31,7 @@ public class QuocVuong extends Npc {
             case ConstNpc.BASE_MENU:
                 switch (select) {
                     case 0: // Bản thân
-                        if (player.nPoint.limitPower < NPoint.MAX_LIMIT) {
+                        if (player.nPoint.limitPower < MAX_LIMIT_POWER) {
                             this.createOtherMenu(player, ConstNpc.OPEN_POWER_MYSEFT,
                                     "Ta sẽ truyền năng lượng giúp con mở giới hạn sức mạnh của bản thân lên "
                                             + Util.numberToMoney(player.nPoint.getPowerNextLimit()),
@@ -43,7 +45,7 @@ public class QuocVuong extends Npc {
                         break;
                     case 1: // Đệ tử
                         if (player.pet != null) {
-                            if (player.pet.nPoint.limitPower < NPoint.MAX_LIMIT) {
+                            if (player.pet.nPoint.limitPower < MAX_LIMIT_POWER) {
                                 this.createOtherMenu(player, ConstNpc.OPEN_POWER_PET,
                                         "Ta sẽ truyền năng lượng giúp con mở giới hạn sức mạnh của đệ tử lên "
                                                 + Util.numberToMoney(player.pet.nPoint.getPowerNextLimit()),
@@ -62,10 +64,13 @@ public class QuocVuong extends Npc {
             case ConstNpc.OPEN_POWER_MYSEFT:
                 switch (select) {
                     case 0:
-                        OpenPowerService.gI().openPowerBasic(player);
+                        if (player.nPoint.limitPower < MAX_LIMIT_POWER) {
+                            OpenPowerService.gI().openPowerBasic(player);
+                        }
                         break;
                     case 1:
-                        if (player.inventory.gold >= OpenPowerService.COST_SPEED_OPEN_LIMIT_POWER) {
+                        if (player.nPoint.limitPower < MAX_LIMIT_POWER
+                                && player.inventory.gold >= OpenPowerService.COST_SPEED_OPEN_LIMIT_POWER) {
                             if (OpenPowerService.gI().openPowerSpeed(player)) {
                                 player.inventory.gold -= OpenPowerService.COST_SPEED_OPEN_LIMIT_POWER;
                                 Service.gI().sendMoney(player);
@@ -80,7 +85,8 @@ public class QuocVuong extends Npc {
                 break;
 
             case ConstNpc.OPEN_POWER_PET:
-                if (select == 0 && player.pet != null) {
+                if (select == 0 && player.pet != null
+                        && player.pet.nPoint.limitPower < MAX_LIMIT_POWER) {
                     if (player.inventory.gold >= OpenPowerService.COST_SPEED_OPEN_LIMIT_POWER) {
                         if (OpenPowerService.gI().openPowerSpeed(player.pet)) {
                             player.inventory.gold -= OpenPowerService.COST_SPEED_OPEN_LIMIT_POWER;

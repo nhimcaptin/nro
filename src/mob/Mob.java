@@ -186,15 +186,22 @@ public class Mob {
                 tiemNang = 1;
                 break;
         }
-        if (checkLevel > 5 && levelPlayer > levelMob) {
+        if (checkLevel > 8 && levelPlayer > levelMob) {
             tiemNang = 1;
-        } else {
+        }else if(levelPlayer < 15){
             if (checkLevel < 0) {
                 checkLevel = Math.abs(levelMob - levelPlayer);
             } else {
                 tiemNang /= (int) (checkLevel * 0.5) + 1.25;
             }
         }
+        //  else {
+        //     if (checkLevel < 0) {
+        //         checkLevel = Math.abs(levelMob - levelPlayer);
+        //     } else {
+        //         tiemNang /= (int) (checkLevel * 0.5) + 1.25;
+        //     }
+        // }
         if (tiemNang < 1) {
             tiemNang = 1;
         }

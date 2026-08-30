@@ -27,7 +27,7 @@ import utils.TimeUtil;
 
 public class NPoint {
 
-    public static final byte MAX_LIMIT = 8;
+    public static final byte MAX_LIMIT = 13;
 
     @Setter
     private Player player;
@@ -1460,14 +1460,16 @@ public class NPoint {
     }
 
     public long calSubTNSM(long tiemNang) {
-        if (power >= 80_000_000_000L) {
-            tiemNang /= 30;
-        } else if (power >= 60_000_000_000L) {
+        if (power >= 130_010_000_000L) {
             tiemNang /= 20;
-        } else if (power >= 50_000_000_000L) {
+        }else if (power >= 100_010_000_000L) {
+            tiemNang /= 15;
+        }else if (power >= 80_000_000_000L) {
             tiemNang /= 10;
-        } else if (power >= 40_000_000_000L) {
+        } else if (power >= 60_000_000_000L) {
             tiemNang /= 5;
+        }else if (power >= 40_000_000_000L) {
+            tiemNang /= 2;
         }
         return tiemNang;
     }
@@ -1518,6 +1520,16 @@ public class NPoint {
                 return 70010000000L; // Đã mở giới hạn lần 7
             case 8:
                 return 80010000000L; // Đã mở giới hạn lần 8
+            case 9:
+                return 90010000000L;
+            case 10:
+                return 100010000000L;
+            case 11:
+                return 130010000000L;
+            case 12:
+                return 150010000000L;
+            case 13:
+                return 280010000000L;
             default:
                 return 0;
         }
@@ -1543,6 +1555,16 @@ public class NPoint {
                 return 70010000000L; // Đã mở giới hạn lần 7
             case 8:
                 return 80010000000L; // Đã mở giới hạn lần 8
+            case 9:
+                return 90010000000L;
+            case 10:
+                return 100010000000L;
+            case 11:
+                return 130010000000L;
+            case 12:
+                return 150010000000L;
+            case 13:
+                return 280010000000L;
             default:
                 return 0;
         }
@@ -1568,6 +1590,16 @@ public class NPoint {
                 return 525000; // Đã mở giới hạn lần 7
             case 8:
                 return 550000; // Đã mở giới hạn lần 8
+            case 9:
+                return 575000;
+            case 10:
+                return 600000;
+            case 11:
+                return 625000;
+            case 12:
+                return 655000;
+            case 13:
+                return 700000;
             default:
                 return 0;
         }
@@ -1593,6 +1625,16 @@ public class NPoint {
                 return 24500; // Đã mở giới hạn lần 7
             case 8:
                 return 25000; // Đã mở giới hạn lần 8
+            case 9:
+                return 26000;
+            case 10:
+                return 27500;
+            case 11:
+                return 30000;
+            case 12:
+                return 32000;
+            case 13:
+                return 35000;
             default:
                 return 0;
         }
@@ -1618,6 +1660,16 @@ public class NPoint {
                 return 1500; // Đã mở giới hạn lần 7
             case 8:
                 return 1600; // Đã mở giới hạn lần 8
+            case 9:
+                return 1700;
+            case 10:
+                return 1800;
+            case 11:
+                return 2000;
+            case 12:
+                return 5000;
+            case 13:
+                return 10000;
             default:
                 return 0;
         }
@@ -1643,6 +1695,12 @@ public class NPoint {
                 return 8; // Đã mở giới hạn lần 7
             case 8:
                 return 9; // Đã mở giới hạn lần 8
+            case 9:
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+                return 10;
             default:
                 return 0;
         }
