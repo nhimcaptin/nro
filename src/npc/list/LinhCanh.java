@@ -32,7 +32,7 @@ public class LinhCanh extends Npc {
             }
             if (player.clan.getMembers().size() < RedRibbonHQ.N_PLAYER_CLAN) {
                 NpcService.gI().createTutorial(player, tempId, this.avartar,
-                        "Bang hội phải có ít nhất 5 thành viên mới có thể tham gia");
+                        "Bang hội phải có ít nhất 3 thành viên mới có thể tham gia");
                 return;
             }
             if (player.clanMember.getNumDateFromJoinTimeToToday() < 1) {

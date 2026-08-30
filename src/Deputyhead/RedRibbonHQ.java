@@ -26,7 +26,7 @@ import utils.Util;
 @Data
 public class RedRibbonHQ implements Runnable {
 
-    public static final int N_PLAYER_CLAN = 5;
+    public static final int N_PLAYER_CLAN = 3;
     public static final int N_PLAYER_MAP = 1;
     public static final int AVAILABLE = 5;
     public static final int TIME_DOANH_TRAI = 1800000;
