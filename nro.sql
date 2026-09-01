@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 30, 2026 at 07:51 PM
+-- Generation Time: Sep 01, 2026 at 04:29 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1103,6 +1103,13 @@ CREATE TABLE `giftcode` (
   `datecreate` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `expired` timestamp NOT NULL DEFAULT '2037-12-31 17:00:00'
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC;
+
+--
+-- Dumping data for table `giftcode`
+--
+
+INSERT INTO `giftcode` (`id`, `code`, `count_left`, `detail`, `datecreate`, `expired`) VALUES
+(1260, 'nhims1', 9999, '[{\"id\":457,\"quantity\":100,\"options\":[{\"id\":30,\"param\":0}]}]', '2026-09-01 14:28:01', '2029-12-31 23:12:53');
 
 -- --------------------------------------------------------
 
@@ -9102,7 +9109,7 @@ ALTER TABLE `data_badges`
 -- AUTO_INCREMENT for table `giftcode`
 --
 ALTER TABLE `giftcode`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1260;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1261;
 
 --
 -- AUTO_INCREMENT for table `history_transaction`
