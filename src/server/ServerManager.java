@@ -105,6 +105,7 @@ public class ServerManager {
         new Thread(SnakeWayManager.gI(), "Update snake way boss").start();
         new Thread(GasDestroyManager.gI(), "Update gas destroy boss").start();
         new Thread(AutoMaintenance.gI(), "Auto Maintenance").start();
+        new Thread(managers.PotentialReductionManager.gI(), "Update Potential Reduction").start();
     }
 
     

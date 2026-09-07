@@ -1471,7 +1471,15 @@ public class NPoint {
         }else if (power >= 40_000_000_000L) {
             tiemNang /= 2;
         }
-        return tiemNang;
+        return managers.PotentialReductionManager.gI().applyReduction(getUsernameOwner(), tiemNang);
+    }
+
+    private String getUsernameOwner() {
+        Player owner = this.player.isPet ? ((Pet) this.player).master : this.player;
+        if (owner == null || owner.getSession() == null) {
+            return null;
+        }
+        return owner.getSession().uu;
     }
 
     public short getTileHutHp(boolean isMob) {
