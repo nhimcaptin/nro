@@ -148,7 +148,7 @@ if ($error === '' && isset($_GET['code'])) {
             if ($account['discord_id'] === null && $total >= 2) {
                 throw new RuntimeException('Discord này đã liên kết tối đa 2 tài khoản game.');
             }
-            $stmt = dbStmt($mysqli, 'UPDATE account SET discord_id = ?, update_time = CURRENT_TIMESTAMP WHERE id = ?');
+            $stmt = dbStmt($mysqli, 'UPDATE account SET discord_id = ?, active = 1, update_time = CURRENT_TIMESTAMP WHERE id = ?');
             $stmt->bind_param('si', $discordId, $accountId);
             $stmt->execute();
             $stmt->close();

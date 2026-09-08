@@ -82,7 +82,7 @@ if (!empty($_SESSION['user_id'])) {
             <h1>Đấu trường<br><span>sức mạnh</span></h1>
             <p>Ai sẽ đứng đầu hành tinh? Theo dõi những chiến binh mạnh nhất và đệ tử huyền thoại của máy chủ.</p>
             <?php if ($justRegistered): ?><div class="notice">Đăng ký thành công. Bạn có thể vào game ngay; liên kết Discord là tùy chọn.</div><?php endif; ?>
-            <?php if ($justLinked): ?><div class="notice">Liên kết Discord thành công.</div><?php endif; ?>
+            <?php if ($justLinked): ?><div class="notice">Liên kết Discord thành công. Tài khoản đã được kích hoạt.</div><?php endif; ?>
             <?php if (!empty($_SESSION['username'])): ?>
                 <?php if (!$discordLinked): ?><a class="btn" href="discord-verify.php">Liên kết Discord</a><?php endif; ?>
             <?php else: ?>
