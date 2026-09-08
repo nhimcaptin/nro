@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="field"><label for="confirm_password">Nhập lại mật khẩu mới</label><input id="confirm_password" type="password" name="confirm_password" minlength="6" required></div>
         <button class="btn" type="submit">Lưu mật khẩu</button>
     </form>
-    <div class="auth-foot"><a href="index.php">← Trang chủ</a> · <a href="logout.php">Đăng xuất</a></div>
+    <div class="auth-foot"><a href="index.php">← Trang chủ</a> · <a href="discord-verify.php">Liên kết Discord</a> · <a href="logout.php">Đăng xuất</a></div>
 </div></div>
 </body>
 </html>

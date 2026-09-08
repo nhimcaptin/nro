@@ -9,7 +9,7 @@ if (!empty($_SESSION['username'])) {
 $errors = [];
 $verified = ($_GET['verified'] ?? '') === '1';
 if ($verified) {
-    echo '<script>window.addEventListener("DOMContentLoaded", function () { alert("Xác thực Discord thành công! Tài khoản đã được kích hoạt."); history.replaceState({}, document.title, "login.php"); });</script>';
+    echo '<script>window.addEventListener("DOMContentLoaded", function () { alert("Liên kết Discord thành công!"); history.replaceState({}, document.title, "login.php"); });</script>';
 }
 if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -18,14 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     if ($username === '' || $password === '') $errors[] = 'Vui lòng nhập tài khoản và mật khẩu.';
     if (!$errors) {
-        $stmt = $mysqli->prepare('SELECT id, username, password, ban, active FROM account WHERE username = ? LIMIT 1');
+        $stmt = $mysqli->prepare('SELECT id, username, password, ban FROM account WHERE username = ? LIMIT 1');
         $stmt->bind_param('s', $username);
         $stmt->execute();
         $account = $stmt->get_result()->fetch_assoc();
         $stmt->close();
         if (!$account || !hash_equals((string) $account['password'], $password)) $errors[] = 'Tài khoản hoặc mật khẩu không đúng.';
         elseif ((int) $account['ban'] === 1) $errors[] = 'Tài khoản đang bị khóa.';
-        elseif ((int) $account['active'] !== 1) $errors[] = 'Tài khoản chưa được kích hoạt.';
         else {
             session_regenerate_id(true);
             $_SESSION['user_id'] = (int) $account['id'];

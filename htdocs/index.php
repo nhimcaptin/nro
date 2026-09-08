@@ -30,6 +30,24 @@ foreach ($rankings as &$list) {
     $list = array_slice($list, 0, 10);
 }
 unset($list);
+
+$discordLinked = false;
+$justRegistered = ($_GET['registered'] ?? '') === '1';
+$justLinked = ($_GET['linked'] ?? '') === '1';
+if (!empty($_SESSION['user_id'])) {
+    $column = $mysqli->query("SHOW COLUMNS FROM account LIKE 'discord_id'");
+    if ($column && $column->num_rows > 0) {
+        $stmt = $mysqli->prepare('SELECT discord_id FROM account WHERE id = ? LIMIT 1');
+        if ($stmt) {
+            $userId = (int) $_SESSION['user_id'];
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $account = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            $discordLinked = !empty($account['discord_id']);
+        }
+    }
+}
 ?>
 <!doctype html>
 <html lang="vi">
@@ -45,6 +63,11 @@ unset($list);
     <nav class="nav-links">
         <a href="index.php">Bảng xếp hạng</a>
         <?php if (!empty($_SESSION['username'])): ?>
+            <?php if ($discordLinked): ?>
+                <a href="discord-verify.php">Đã liên kết Discord</a>
+            <?php else: ?>
+                <a class="btn" href="discord-verify.php">Liên kết Discord</a>
+            <?php endif; ?>
             <a href="change-password.php">Đổi mật khẩu</a>
             <a href="logout.php">Đăng xuất</a>
         <?php else: ?>
@@ -54,7 +77,18 @@ unset($list);
 </div></header>
 <main><div class="shell">
     <section class="hero">
-        <div class="hero-copy"><div class="kicker">Vũ trụ chiến binh</div><h1>Đấu trường<br><span>sức mạnh</span></h1><p>Ai sẽ đứng đầu hành tinh? Theo dõi những chiến binh mạnh nhất và đệ tử huyền thoại của máy chủ.</p><a class="btn" href="register.php">Tạo tài khoản</a></div>
+        <div class="hero-copy">
+            <div class="kicker">Vũ trụ chiến binh</div>
+            <h1>Đấu trường<br><span>sức mạnh</span></h1>
+            <p>Ai sẽ đứng đầu hành tinh? Theo dõi những chiến binh mạnh nhất và đệ tử huyền thoại của máy chủ.</p>
+            <?php if ($justRegistered): ?><div class="notice">Đăng ký thành công. Bạn có thể vào game ngay; liên kết Discord là tùy chọn.</div><?php endif; ?>
+            <?php if ($justLinked): ?><div class="notice">Liên kết Discord thành công.</div><?php endif; ?>
+            <?php if (!empty($_SESSION['username'])): ?>
+                <?php if (!$discordLinked): ?><a class="btn" href="discord-verify.php">Liên kết Discord</a><?php endif; ?>
+            <?php else: ?>
+                <a class="btn" href="register.php">Tạo tài khoản</a>
+            <?php endif; ?>
+        </div>
         <div class="hero-orbit"><div class="stars">✦　✧　✦<br>　✧　✦　✧</div><div class="sun">★</div></div>
     </section>
     <div class="section-heading"><div><div class="kicker">Bảng vàng chiến binh</div><h2>Xếp hạng sức mạnh</h2></div><p>Cập nhật theo dữ liệu nhân vật trong máy chủ</p></div>
