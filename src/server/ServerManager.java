@@ -106,6 +106,7 @@ public class ServerManager {
         new Thread(GasDestroyManager.gI(), "Update gas destroy boss").start();
         new Thread(AutoMaintenance.gI(), "Auto Maintenance").start();
         new Thread(managers.PotentialReductionManager.gI(), "Update Potential Reduction").start();
+        PlayerDAO.startAutoUpdater();
     }
 
     

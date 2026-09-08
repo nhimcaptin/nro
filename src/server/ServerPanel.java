@@ -68,7 +68,7 @@ public class ServerPanel extends JFrame {
     private final RateField ngoc = new RateField("Ngọc rơi", DropRateConfig.NGOC_NUM, DropRateConfig.NGOC_DEN);
     private final RateField gold3Planets = new RateField("Vàng 3 hành tinh", DropRateConfig.GOLD_3_PLANETS_NUM, DropRateConfig.GOLD_3_PLANETS_DEN);
     private final RateField goldMap = new RateField("Vàng map khác", DropRateConfig.GOLD_MAP_NUM, DropRateConfig.GOLD_MAP_DEN);
-    private final RateField ngocRong = new RateField("Ngọc rồng 1-7 sao", DropRateConfig.NGOC_RONG_NUM, DropRateConfig.NGOC_RONG_DEN);
+    private final RateField ngocRong = new RateField("Ngọc rồng 6-7 sao", DropRateConfig.NGOC_RONG_NUM, DropRateConfig.NGOC_RONG_DEN);
     private final RateField doTlCold = new RateField("Đồ TL map Cold", DropRateConfig.DO_TL_COLD_NUM, DropRateConfig.DO_TL_COLD_DEN);
     private final RateField farmNgoc = new RateField("Farm ngọc xanh", DropRateConfig.FARM_NGOC_NUM, DropRateConfig.FARM_NGOC_DEN);
     private final RateField farmThoiVang = new RateField("Farm thỏi vàng", DropRateConfig.FARM_THOI_VANG_NUM, DropRateConfig.FARM_THOI_VANG_DEN);

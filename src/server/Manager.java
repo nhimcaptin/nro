@@ -67,6 +67,7 @@ public final class Manager {
     public static boolean LOCAL = false;
     public static boolean TEST = false;
     public static boolean DAO_AUTO_UPDATER = false;
+    public static int DAO_AUTO_UPDATER_INTERVAL = 60;
     public static MapTemplate[] MAP_TEMPLATES;
     public static final List<map.Map> MAPS = new ArrayList<>();
     private final ScheduledExecutorService mapUpdater = Executors.newSingleThreadScheduledExecutor();
@@ -853,6 +854,9 @@ public final class Manager {
         }
         if ((value = properties.get("server.daoautoupdater")) != null) {
             DAO_AUTO_UPDATER = String.valueOf(value).equalsIgnoreCase("true");
+        }
+        if ((value = properties.get("server.daoautoupdater.interval")) != null) {
+            DAO_AUTO_UPDATER_INTERVAL = Math.max(10, Integer.parseInt(String.valueOf(value)));
         }
         AutoMaintenance.loadConfig(
                 properties.get("server.automaintenance"),

@@ -14,7 +14,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +31,8 @@ import utils.Util;
 
 public class PlayerDAO {
 
-private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);; // Tạo một thread duy nhất cho scheduler// Tạo một thread duy nhất cho scheduler
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static volatile boolean autoUpdaterStarted;
 
     public static boolean createNewPlayer(int userId, String name, byte gender, int hair) {
         try {
@@ -324,7 +327,37 @@ private static final ScheduledExecutorService scheduler = Executors.newScheduled
         }
     }
 
+    public static void startAutoUpdater() {
+        if (!Manager.DAO_AUTO_UPDATER || autoUpdaterStarted) {
+            return;
+        }
+        autoUpdaterStarted = true;
+        int interval = Manager.DAO_AUTO_UPDATER_INTERVAL;
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                List<Player> players = new ArrayList<>(server.Client.gI().getPlayers());
+                int saved = 0;
+                long st = System.currentTimeMillis();
+                for (Player player : players) {
+                    if (player != null && player.isPl() && !player.isOffline) {
+                        updatePlayer(player, false);
+                        saved++;
+                    }
+                }
+                Logger.success("[" + TimeUtil.getCurrHour() + ":" + TimeUtil.getCurrMin()
+                        + "] - Auto save " + saved + " players: " + (System.currentTimeMillis() - st) + "ms\n");
+            } catch (Exception e) {
+                Logger.logException(PlayerDAO.class, e, "Lỗi auto save player");
+            }
+        }, interval, interval, TimeUnit.SECONDS);
+        Logger.success("Auto save player mỗi " + interval + " giây\n");
+    }
+
     public static void updatePlayer(Player player) {
+        updatePlayer(player, true);
+    }
+
+    public static void updatePlayer(Player player, boolean logTime) {
         if (player != null && player.idMark.isLoadedAllDataPlayer()) {
             long st = System.currentTimeMillis();
             try {
@@ -943,10 +976,12 @@ private static final ScheduledExecutorService scheduler = Executors.newScheduled
                         player.id);
                 SuperRankDAO.updateData(player);
                 if (player.isOffline) {
-                 Logger.log("[" + TimeUtil.getCurrHour() + ":" + TimeUtil.getCurrMin() + "] - Player Update Log -> " + player.name + ": " + (System.currentTimeMillis() - st) + "ms\n");
+                    if (logTime) {
+                        Logger.log("[" + TimeUtil.getCurrHour() + ":" + TimeUtil.getCurrMin() + "] - Player Update Log -> " + player.name + ": " + (System.currentTimeMillis() - st) + "ms\n");
+                    }
                     player.dispose();
-                } else {
-                 Logger.success("[" + TimeUtil.getCurrHour() + ":" + TimeUtil.getCurrMin() + "] - Player Update -> " + player.name + ": " + (System.currentTimeMillis() -st) + "ms\n");
+                } else if (logTime) {
+                    Logger.success("[" + TimeUtil.getCurrHour() + ":" + TimeUtil.getCurrMin() + "] - Player Update -> " + player.name + ": " + (System.currentTimeMillis() - st) + "ms\n");
                 }
             } catch (Exception e) {
                 Logger.logException(PlayerDAO.class, e, "Lỗi save player " + player.name);

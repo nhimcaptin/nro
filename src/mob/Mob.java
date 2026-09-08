@@ -787,7 +787,7 @@ public class Mob {
         }
         if (this.zone.map.mapId >= 0) {
             if (Util.isTrue(1, 100)) { // nro
-                list.add(new ItemMap(zone, Util.nextInt(17, 20), 1, x, this.location.y, player.id));
+                list.add(new ItemMap(zone, Util.nextInt(18, 20), 1, x, this.location.y, player.id));
             }
         }
         if (this.zone.map.mapId >= 0) {
