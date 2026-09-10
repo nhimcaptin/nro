@@ -1004,7 +1004,7 @@ public class Player implements Runnable {
                 }
             }
 
-            if (!piercing && effectSkill.isShielding && !isMobAttack) {
+            if (!piercing && effectSkill.isShielding) {
                 if (this.idMark != null) {
                     this.idMark.setDamePST((int) Math.min(damage, 2_000_000_000L));
                 }
