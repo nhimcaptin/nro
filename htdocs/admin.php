@@ -24,6 +24,7 @@ if (empty($_SESSION['csrf'])) {
 $mysqli->query('CREATE TABLE IF NOT EXISTS admin_item_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     admin_username VARCHAR(255) NOT NULL,
+    action VARCHAR(20) NOT NULL DEFAULT "recall",
     player_id INT NOT NULL,
     player_name VARCHAR(255) NOT NULL,
     container VARCHAR(50) NOT NULL,
@@ -31,6 +32,7 @@ $mysqli->query('CREATE TABLE IF NOT EXISTS admin_item_log (
     item_id INT NOT NULL,
     item_name VARCHAR(255) NOT NULL,
     quantity INT NOT NULL,
+    options VARCHAR(255) NOT NULL DEFAULT "",
     reason VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
@@ -42,12 +44,27 @@ $mysqli->query('CREATE TABLE IF NOT EXISTS admin_command (
     container VARCHAR(50) NOT NULL,
     slot INT NOT NULL,
     item_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    options VARCHAR(255) NOT NULL DEFAULT "",
     status VARCHAR(20) NOT NULL DEFAULT "pending",
     message VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed_at TIMESTAMP NULL DEFAULT NULL,
     INDEX idx_status (type, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+// Bổ sung cột cho các bảng đã tạo từ bản trước
+foreach ([
+    ['admin_command', 'quantity', 'ADD COLUMN quantity INT NOT NULL DEFAULT 0 AFTER item_id'],
+    ['admin_command', 'options', 'ADD COLUMN options VARCHAR(255) NOT NULL DEFAULT "" AFTER quantity'],
+    ['admin_item_log', 'action', 'ADD COLUMN action VARCHAR(20) NOT NULL DEFAULT "recall" AFTER admin_username'],
+    ['admin_item_log', 'options', 'ADD COLUMN options VARCHAR(255) NOT NULL DEFAULT "" AFTER quantity'],
+] as [$table, $column, $alter]) {
+    $rs = $mysqli->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+    if ($rs && $rs->num_rows === 0) {
+        $mysqli->query("ALTER TABLE `$table` $alter");
+    }
+}
 
 /** Các cột chứa vật phẩm của nhân vật, khớp với PlayerDAO.updatePlayer */
 const CONTAINERS = [
@@ -62,6 +79,14 @@ const POINT_LABELS = [
     0 => 'Giới hạn sức mạnh', 1 => 'Sức mạnh', 2 => 'Tiềm năng', 3 => 'Thể lực', 4 => 'Thể lực tối đa',
     5 => 'HP gốc', 6 => 'KI gốc', 7 => 'Sức đánh gốc', 8 => 'Giáp gốc', 9 => 'Chí mạng',
     10 => 'Chí mạng rồng', 12 => 'HP hiện tại', 13 => 'KI hiện tại',
+];
+
+const PET_TYPES = [
+    0 => 'Đệ tử thường',
+    1 => 'Mabư',
+    2 => 'Beerus',
+    3 => 'Black Goku',
+    4 => 'Black Goku Rose',
 ];
 
 function loadTemplates(mysqli $mysqli): array {
@@ -124,6 +149,50 @@ function emptySlotJson($createTime): string {
     return json_encode([-1, 0, '[]', $createTime], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
+/** Giữ nguyên option và thời gian tạo của ô đồ, chỉ đổi số lượng còn lại */
+function slotJsonWithQuantity($rawSlot, int $newQuantity): string {
+    $data = is_string($rawSlot) ? json_decode($rawSlot, true) : $rawSlot;
+    $data[1] = $newQuantity;
+    return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+/** Chuỗi "21:80, 47:2000" -> [[21,80],[47,2000]] */
+function parseOptionInput(string $input): array {
+    $options = [];
+    foreach (preg_split('/[,;\n]+/', $input, -1, PREG_SPLIT_NO_EMPTY) as $part) {
+        $pair = explode(':', trim($part));
+        if (count($pair) !== 2 || !is_numeric($pair[0]) || !is_numeric($pair[1])) {
+            return [];
+        }
+        $options[] = [(int) $pair[0], (int) $pair[1]];
+    }
+    return $options;
+}
+
+function buildSlotJson(int $templateId, int $quantity, array $options): string {
+    $encoded = [];
+    foreach ($options as $option) {
+        $encoded[] = json_encode([$option[0], $option[1]]);
+    }
+    return json_encode([
+        $templateId,
+        $quantity,
+        json_encode($encoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        (int) round(microtime(true) * 1000),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+function writeLog(mysqli $mysqli, string $action, int $playerId, string $playerName, string $container,
+                  int $slot, int $itemId, string $itemName, int $quantity, string $options, string $reason): void {
+    $stmt = $mysqli->prepare('INSERT INTO admin_item_log
+        (admin_username, action, player_id, player_name, container, slot, item_id, item_name, quantity, options, reason)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+    $stmt->bind_param('ssissiisiss', $_SESSION['username'], $action, $playerId, $playerName, $container,
+        $slot, $itemId, $itemName, $quantity, $options, $reason);
+    $stmt->execute();
+    $stmt->close();
+}
+
 function isAccountOnline(?array $account): bool {
     if (!$account) {
         return false;
@@ -150,6 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recal
     $playerId = (int) ($_POST['player_id'] ?? 0);
     $container = (string) ($_POST['container'] ?? '');
     $slot = (int) ($_POST['slot'] ?? -1);
+    $quantity = (int) ($_POST['quantity'] ?? 0);
     $reason = trim((string) ($_POST['reason'] ?? ''));
 
     if (!isset(CONTAINERS[$container])) {
@@ -175,16 +245,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recal
                 $online = isAccountOnline($target);
                 $ok = false;
 
-                if ($online) {
+                if ($quantity < 1 || $quantity > $item['quantity']) {
+                    $errors[] = 'Số lượng thu hồi phải từ 1 đến ' . $item['quantity'] . '.';
+                } elseif ($online) {
                     // Người chơi đang online: gửi lệnh cho server tự xoá trong bộ nhớ,
                     // nếu sửa thẳng database thì server sẽ ghi đè khi lưu.
-                    $stmt = $mysqli->prepare('INSERT INTO admin_command (type, player_id, container, slot, item_id)
-                                              VALUES ("recall_item", ?, ?, ?, ?)');
-                    $stmt->bind_param('isii', $playerId, $container, $slot, $item['template_id']);
+                    $stmt = $mysqli->prepare('INSERT INTO admin_command (type, player_id, container, slot, item_id, quantity)
+                                              VALUES ("recall_item", ?, ?, ?, ?, ?)');
+                    $stmt->bind_param('isiii', $playerId, $container, $slot, $item['template_id'], $quantity);
                     $ok = $stmt->execute();
                     $stmt->close();
                 } else {
-                    $slots[$slot] = emptySlotJson($item['create_time']);
+                    $slots[$slot] = $quantity >= $item['quantity']
+                        ? emptySlotJson($item['create_time'])
+                        : slotJsonWithQuantity($slots[$slot], $item['quantity'] - $quantity);
                     $newData = json_encode($slots, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
                     $stmt = $mysqli->prepare('UPDATE player SET `' . $container . '` = ? WHERE id = ?');
@@ -193,20 +267,165 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recal
                     $stmt->close();
                 }
 
-                if (!$ok) {
+                if ($errors) {
+                    // đã báo lỗi số lượng ở trên
+                } elseif (!$ok) {
                     $errors[] = 'Không thực hiện được thao tác thu hồi.';
                 } else {
                     $itemName = $itemNames[$item['template_id']] ?? ('#' . $item['template_id']);
-                    $stmt = $mysqli->prepare('INSERT INTO admin_item_log
-                        (admin_username, player_id, player_name, container, slot, item_id, item_name, quantity, reason)
-                        VALUES (?,?,?,?,?,?,?,?,?)');
-                    $stmt->bind_param('sissiisis', $_SESSION['username'], $playerId, $target['name'], $container,
-                        $slot, $item['template_id'], $itemName, $item['quantity'], $reason);
-                    $stmt->execute();
-                    $stmt->close();
+                    writeLog($mysqli, 'recall', $playerId, (string) $target['name'], $container, $slot,
+                        (int) $item['template_id'], $itemName, $quantity, '', $reason);
                     $success = $online
-                        ? 'Đã gửi lệnh thu hồi "' . $itemName . '" của ' . $target['name'] . '. Người chơi đang online nên server sẽ áp dụng trong vài giây, xem kết quả ở mục "Lệnh gửi server".'
-                        : 'Đã thu hồi "' . $itemName . '" (x' . $item['quantity'] . ') của ' . $target['name'] . '.';
+                        ? 'Đã gửi lệnh thu hồi "' . $itemName . '" (x' . $quantity . ') của ' . $target['name'] . '. Người chơi đang online nên server sẽ áp dụng trong vài giây, xem kết quả ở mục "Lệnh gửi server".'
+                        : 'Đã thu hồi "' . $itemName . '" (x' . $quantity . ') của ' . $target['name'] . '.';
+                }
+            }
+        }
+    }
+}
+
+/* --------------------------- Cấp vật phẩm --------------------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'give') {
+    if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+        $errors[] = 'Phiên làm việc không hợp lệ, hãy tải lại trang.';
+    }
+    $playerId = (int) ($_POST['player_id'] ?? 0);
+    $container = (string) ($_POST['container'] ?? 'items_bag');
+    $templateId = (int) ($_POST['item_id'] ?? -1);
+    $quantity = (int) ($_POST['quantity'] ?? 1);
+    $optionInput = trim((string) ($_POST['options'] ?? ''));
+    $reason = trim((string) ($_POST['reason'] ?? ''));
+
+    if (!in_array($container, ['items_bag', 'items_box'], true)) {
+        $errors[] = 'Chỉ cấp được vào hành trang hoặc rương đồ.';
+    }
+    if (!isset($itemNames[$templateId])) {
+        $errors[] = 'Vật phẩm không tồn tại.';
+    }
+    if ($quantity < 1 || $quantity > 1000000) {
+        $errors[] = 'Số lượng phải từ 1 đến 1.000.000.';
+    }
+    $options = $optionInput === '' ? [] : parseOptionInput($optionInput);
+    if ($optionInput !== '' && !$options) {
+        $errors[] = 'Chỉ số nhập sai định dạng, đúng phải là "mã:giá trị", ví dụ 21:80, 47:2000.';
+    }
+    foreach ($options as $option) {
+        if (!isset($optionNames[$option[0]])) {
+            $errors[] = 'Không có chỉ số mã ' . $option[0] . '.';
+        }
+    }
+
+    if (!$errors) {
+        $stmt = $mysqli->prepare('SELECT p.id, p.name, p.`' . $container . '` AS data, a.last_time_login, a.last_time_logout
+                                  FROM player p LEFT JOIN account a ON a.id = p.account_id WHERE p.id = ? LIMIT 1');
+        $stmt->bind_param('i', $playerId);
+        $stmt->execute();
+        $target = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$target) {
+            $errors[] = 'Không tìm thấy nhân vật.';
+        } else {
+            $online = isAccountOnline($target);
+            $optionText = implode(',', array_map(fn($o) => $o[0] . ':' . $o[1], $options));
+            $ok = false;
+
+            if ($online) {
+                $stmt = $mysqli->prepare('INSERT INTO admin_command (type, player_id, container, slot, item_id, quantity, options)
+                                          VALUES ("give_item", ?, ?, -1, ?, ?, ?)');
+                $stmt->bind_param('isiis', $playerId, $container, $templateId, $quantity, $optionText);
+                $ok = $stmt->execute();
+                $stmt->close();
+            } else {
+                $slots = json_decode((string) $target['data'], true);
+                $items = parseContainer($target['data']);
+                $freeSlot = null;
+                foreach ($items as $index => $existing) {
+                    if (!$existing) {
+                        $freeSlot = $index;
+                        break;
+                    }
+                }
+                if (!is_array($slots) || $freeSlot === null) {
+                    $errors[] = 'Không còn ô trống trong ' . strtolower(CONTAINERS[$container]) . ' của nhân vật.';
+                } else {
+                    $slots[$freeSlot] = buildSlotJson($templateId, $quantity, $options);
+                    $newData = json_encode($slots, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    $stmt = $mysqli->prepare('UPDATE player SET `' . $container . '` = ? WHERE id = ?');
+                    $stmt->bind_param('si', $newData, $playerId);
+                    $ok = $stmt->execute();
+                    $stmt->close();
+                }
+            }
+
+            if (!$errors && !$ok) {
+                $errors[] = 'Không thực hiện được thao tác cấp đồ.';
+            } elseif (!$errors) {
+                $itemName = $itemNames[$templateId];
+                writeLog($mysqli, 'give', $playerId, (string) $target['name'], $container, -1,
+                    $templateId, $itemName, $quantity, $optionText, $reason);
+                $success = $online
+                    ? 'Đã gửi lệnh cấp "' . $itemName . '" (x' . $quantity . ') cho ' . $target['name'] . '. Server sẽ áp dụng trong vài giây.'
+                    : 'Đã cấp "' . $itemName . '" (x' . $quantity . ') cho ' . $target['name'] . '.';
+            }
+        }
+    }
+}
+
+/* ---------------------------- Cấp đệ tử ---------------------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'give_pet') {
+    if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+        $errors[] = 'Phiên làm việc không hợp lệ, hãy tải lại trang.';
+    }
+    $playerId = (int) ($_POST['player_id'] ?? 0);
+    $petType = (int) ($_POST['pet_type'] ?? -1);
+    $gender = (int) ($_POST['pet_gender'] ?? -1);
+    $replace = isset($_POST['replace_pet']);
+    $reason = trim((string) ($_POST['reason'] ?? ''));
+    if (!isset(PET_TYPES[$petType])) {
+        $errors[] = 'Loại đệ tử không hợp lệ.';
+    }
+    if ($gender < 0 || $gender > 2) {
+        $errors[] = 'Hành tinh đệ tử không hợp lệ.';
+    }
+
+    if (!$errors) {
+        $stmt = $mysqli->prepare('SELECT id, name, pet FROM player WHERE id = ? LIMIT 1');
+        $stmt->bind_param('i', $playerId);
+        $stmt->execute();
+        $target = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$target) {
+            $errors[] = 'Không tìm thấy nhân vật.';
+        } elseif (!$replace && !empty(json_decode((string) $target['pet'], true))) {
+            $errors[] = 'Nhân vật đã có đệ tử. Hãy chọn xác nhận thay thế nếu muốn cấp đệ tử mới.';
+        } else {
+            $stmt = $mysqli->prepare("SELECT id FROM admin_command
+                WHERE type = 'give_pet' AND player_id = ? AND status = 'pending' LIMIT 1");
+            $stmt->bind_param('i', $playerId);
+            $stmt->execute();
+            $pending = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            if ($pending) {
+                $errors[] = 'Nhân vật đã có một lệnh cấp đệ tử đang chờ xử lý.';
+            } else {
+                $options = $replace ? 'replace' : '';
+                $stmt = $mysqli->prepare('INSERT INTO admin_command
+                    (type, player_id, container, slot, item_id, quantity, options)
+                    VALUES ("give_pet", ?, "pet", -1, ?, ?, ?)');
+                $stmt->bind_param('iiis', $playerId, $petType, $gender, $options);
+                $ok = $stmt->execute();
+                $stmt->close();
+
+                if (!$ok) {
+                    $errors[] = 'Không gửi được lệnh cấp đệ tử.';
+                } else {
+                    writeLog($mysqli, 'give_pet', $playerId, (string) $target['name'], 'pet', -1,
+                        $petType, PET_TYPES[$petType], 1, 'Hành tinh ' . $gender, $reason);
+                    $success = 'Đã gửi lệnh cấp ' . PET_TYPES[$petType] . ' cho ' . $target['name']
+                        . '. Nếu nhân vật offline, lệnh sẽ tự áp dụng khi đăng nhập.';
                 }
             }
         }
@@ -346,6 +565,78 @@ function renderOption(array $option, array $optionNames): string {
             </div>
         </section>
 
+        <section class="panel admin-block">
+            <div class="panel-head"><h3>Cấp đệ tử</h3><small>Áp dụng ngay hoặc khi đăng nhập</small></div>
+            <form class="give-form" method="post" onsubmit="return confirm('Xác nhận cấp đệ tử cho nhân vật này?');">
+                <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                <input type="hidden" name="action" value="give_pet">
+                <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
+                <div class="field">
+                    <label for="pet-type">Loại đệ tử</label>
+                    <select id="pet-type" name="pet_type">
+                        <option value="0">Đệ tử thường</option>
+                        <option value="1">Mabư</option>
+                        <option value="2">Beerus</option>
+                        <option value="3">Black Goku</option>
+                        <option value="4">Black Goku Rose</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="pet-gender">Hành tinh</label>
+                    <select id="pet-gender" name="pet_gender">
+                        <option value="0">Trái Đất</option>
+                        <option value="1">Namếc</option>
+                        <option value="2">Xayda</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="pet-reason">Lý do</label>
+                    <input id="pet-reason" name="reason" maxlength="255">
+                </div>
+                <label class="check-field">
+                    <input type="checkbox" name="replace_pet" value="1">
+                    Thay thế đệ tử hiện có (đệ tử cũ và trang bị đang mặc sẽ mất)
+                </label>
+                <button class="btn" type="submit">Cấp đệ tử</button>
+            </form>
+        </section>
+
+        <section class="panel admin-block">
+            <div class="panel-head"><h3>Cấp vật phẩm</h3><small>Vào hành trang hoặc rương đồ</small></div>
+            <form class="give-form" method="post">
+                <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                <input type="hidden" name="action" value="give">
+                <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
+                <div class="field">
+                    <label for="give-item">Vật phẩm</label>
+                    <input id="give-item" name="item_id" list="item-list" required placeholder="Nhập ID vật phẩm">
+                    <datalist id="item-list">
+                        <?php foreach ($itemNames as $id => $name): ?><option value="<?= (int) $id ?>"><?= htmlspecialchars($name) ?></option><?php endforeach; ?>
+                    </datalist>
+                </div>
+                <div class="field">
+                    <label for="give-quantity">Số lượng</label>
+                    <input id="give-quantity" type="number" name="quantity" min="1" max="1000000" value="1" required>
+                </div>
+                <div class="field">
+                    <label for="give-container">Nơi nhận</label>
+                    <select id="give-container" name="container">
+                        <option value="items_bag">Hành trang</option>
+                        <option value="items_box">Rương đồ</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="give-options">Chỉ số (tùy chọn)</label>
+                    <input id="give-options" name="options" placeholder="VD: 21:80, 47:2000">
+                </div>
+                <div class="field">
+                    <label for="give-reason">Lý do</label>
+                    <input id="give-reason" name="reason" maxlength="255">
+                </div>
+                <button class="btn" type="submit">Cấp vật phẩm</button>
+            </form>
+        </section>
+
         <?php foreach (CONTAINERS as $column => $label): ?>
             <?php $items = parseContainer($detail[$column] ?? null); ?>
             <section class="panel admin-block">
@@ -374,6 +665,7 @@ function renderOption(array $option, array $optionNames): string {
                                     <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
                                     <input type="hidden" name="container" value="<?= htmlspecialchars($column) ?>">
                                     <input type="hidden" name="slot" value="<?= (int) $slot ?>">
+                                    <input class="qty" type="number" name="quantity" min="1" max="<?= (int) $item['quantity'] ?>" value="<?= (int) $item['quantity'] ?>" required title="Số lượng thu hồi">
                                     <input name="reason" placeholder="Lý do" maxlength="255">
                                     <button class="btn danger" type="submit">Thu hồi</button>
                                 </form>
@@ -390,9 +682,9 @@ function renderOption(array $option, array $optionNames): string {
     <section class="panel admin-block">
         <div class="panel-head"><h3>Lệnh gửi server</h3><small>Thu hồi khi người chơi đang online · tự làm mới mỗi 10s</small></div>
         <table class="admin-table">
-            <thead><tr><th>Thời gian</th><th>Nhân vật</th><th>Vật phẩm</th><th>Túi</th><th>Ô</th><th>Trạng thái</th></tr></thead>
+            <thead><tr><th>Thời gian</th><th>Hành động</th><th>Nhân vật</th><th>Vật phẩm</th><th>Túi</th><th>Ô</th><th>Trạng thái</th></tr></thead>
             <tbody>
-            <?php if (!$commands): ?><tr><td colspan="6" class="empty">Chưa có lệnh nào.</td></tr><?php endif; ?>
+            <?php if (!$commands): ?><tr><td colspan="7" class="empty">Chưa có lệnh nào.</td></tr><?php endif; ?>
             <?php foreach ($commands as $cmd): ?>
                 <?php
                 $status = (string) $cmd['status'];
@@ -401,10 +693,17 @@ function renderOption(array $option, array $optionNames): string {
                 ?>
                 <tr>
                     <td><?= htmlspecialchars((string) $cmd['created_at']) ?></td>
+                    <td><?= $cmd['type'] === 'give_pet' ? 'Cấp đệ tử' : ($cmd['type'] === 'give_item' ? 'Cấp đồ' : 'Thu hồi') ?></td>
                     <td><?= htmlspecialchars((string) ($cmd['player_name'] ?? ('#' . $cmd['player_id']))) ?></td>
-                    <td><?= htmlspecialchars($itemNames[(int) $cmd['item_id']] ?? ('#' . $cmd['item_id'])) ?></td>
+                    <td>
+                        <?php if ($cmd['type'] === 'give_pet'): ?>
+                            <?= htmlspecialchars(PET_TYPES[(int) $cmd['item_id']] ?? ('Loại #' . $cmd['item_id'])) ?>
+                        <?php else: ?>
+                            <?= htmlspecialchars($itemNames[(int) $cmd['item_id']] ?? ('#' . $cmd['item_id'])) ?> x<?= (int) $cmd['quantity'] ?>
+                        <?php endif; ?>
+                    </td>
                     <td><?= htmlspecialchars(CONTAINERS[$cmd['container']] ?? $cmd['container']) ?></td>
-                    <td><?= (int) $cmd['slot'] ?></td>
+                    <td><?= $cmd['slot'] < 0 ? '—' : (int) $cmd['slot'] ?></td>
                     <td>
                         <span class="tag <?= $statusClass ?>"><?= htmlspecialchars($statusLabel) ?></span>
                         <?php if (!empty($cmd['message'])): ?><div class="rank-meta"><?= htmlspecialchars((string) $cmd['message']) ?></div><?php endif; ?>
@@ -416,17 +715,21 @@ function renderOption(array $option, array $optionNames): string {
     </section>
 
     <section class="panel admin-block">
-        <div class="panel-head"><h3>Lịch sử thu hồi</h3><small>20 hoạt động gần nhất</small></div>
+        <div class="panel-head"><h3>Lịch sử thao tác</h3><small>20 hoạt động gần nhất</small></div>
         <table class="admin-table">
-            <thead><tr><th>Thời gian</th><th>Admin</th><th>Nhân vật</th><th>Vật phẩm</th><th>Túi</th><th>Lý do</th></tr></thead>
+            <thead><tr><th>Thời gian</th><th>Admin</th><th>Hành động</th><th>Nhân vật</th><th>Vật phẩm</th><th>Túi</th><th>Lý do</th></tr></thead>
             <tbody>
-            <?php if (!$recallLogs): ?><tr><td colspan="6" class="empty">Chưa có hoạt động nào.</td></tr><?php endif; ?>
+            <?php if (!$recallLogs): ?><tr><td colspan="7" class="empty">Chưa có hoạt động nào.</td></tr><?php endif; ?>
             <?php foreach ($recallLogs as $log): ?>
                 <tr>
                     <td><?= htmlspecialchars((string) $log['created_at']) ?></td>
                     <td><?= htmlspecialchars((string) $log['admin_username']) ?></td>
+                    <td><?= ($log['action'] ?? 'recall') === 'give_pet' ? 'Cấp đệ tử' : (($log['action'] ?? 'recall') === 'give' ? 'Cấp đồ' : 'Thu hồi') ?></td>
                     <td><?= htmlspecialchars((string) $log['player_name']) ?></td>
-                    <td><?= htmlspecialchars((string) $log['item_name']) ?> x<?= (int) $log['quantity'] ?></td>
+                    <td>
+                        <?= htmlspecialchars((string) $log['item_name']) ?> x<?= (int) $log['quantity'] ?>
+                        <?php if (!empty($log['options'])): ?><div class="rank-meta"><?= htmlspecialchars((string) $log['options']) ?></div><?php endif; ?>
+                    </td>
                     <td><?= htmlspecialchars(CONTAINERS[$log['container']] ?? $log['container']) ?></td>
                     <td><?= htmlspecialchars((string) ($log['reason'] ?? '')) ?></td>
                 </tr>

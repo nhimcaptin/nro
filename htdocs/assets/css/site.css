@@ -88,6 +88,13 @@ footer { padding: 25px 0; color: var(--muted); text-align: center; font-weight: 
 .admin-table th { font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-size: 15px; }
 .admin-table tr:last-child td { border-bottom: 0; }
 .admin-table form { display: flex; gap: 8px; align-items: center; }
+.give-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0 16px; align-items: end; padding: 8px 20px 22px; }
+.give-form .field { margin: 12px 0 0; }
+.give-form select { width: 100%; padding: 13px 14px; border: 2px solid var(--ink); border-radius: 4px; background: #fffdf6; color: var(--ink); font: inherit; }
+.give-form .btn { margin-top: 12px; height: 50px; }
+.check-field { display: flex; align-items: center; gap: 9px; padding: 13px; margin-top: 12px; background: #fff1c8; border: 2px solid var(--ink); font-weight: 700; }
+.check-field input { width: 20px; height: 20px; }
+.admin-table form input.qty { width: 78px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 4px; background: #fffdf6; font: inherit; font-size: 15px; }
 .admin-table form input[name="reason"] { width: 130px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 4px; background: #fffdf6; font: inherit; font-size: 15px; }
 .admin-table .btn { padding: 8px 14px; font-size: 15px; }
 .btn.danger { background: var(--red); }

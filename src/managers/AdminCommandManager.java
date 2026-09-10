@@ -12,6 +12,7 @@ import player.Player;
 import player.Service.InventoryService;
 import server.Client;
 import services.ItemService;
+import services.PetService;
 import services.Service;
 import utils.Logger;
 
@@ -35,10 +36,13 @@ public class AdminCommandManager implements Runnable {
     private static class Command {
 
         int id;
+        String type;
         int playerId;
         String container;
         int slot;
         int itemId;
+        int quantity;
+        String options;
     }
 
     @Override
@@ -62,16 +66,19 @@ public class AdminCommandManager implements Runnable {
         List<Command> commands = new ArrayList<>();
         try (Connection con = DatabaseManager.getConnection();
                 PreparedStatement ps = con.prepareStatement(
-                        "select id, player_id, container, slot, item_id from admin_command "
-                        + "where type = 'recall_item' and status = 'pending' order by id asc limit 50")) {
+                        "select id, type, player_id, container, slot, item_id, quantity, options from admin_command "
+                        + "where type in ('recall_item', 'give_item', 'give_pet') and status = 'pending' order by id asc")) {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Command command = new Command();
                     command.id = rs.getInt("id");
+                    command.type = rs.getString("type");
                     command.playerId = rs.getInt("player_id");
                     command.container = rs.getString("container");
                     command.slot = rs.getInt("slot");
                     command.itemId = rs.getInt("item_id");
+                    command.quantity = rs.getInt("quantity");
+                    command.options = rs.getString("options");
                     commands.add(command);
                 }
             }
@@ -79,7 +86,13 @@ public class AdminCommandManager implements Runnable {
 
         for (Command command : commands) {
             try {
-                recallItem(command);
+                if ("give_pet".equals(command.type)) {
+                    givePet(command);
+                } else if ("give_item".equals(command.type)) {
+                    giveItem(command);
+                } else {
+                    recallItem(command);
+                }
             } catch (Exception e) {
                 finish(command.id, "failed", "Lỗi: " + e.getMessage());
             }
@@ -113,16 +126,116 @@ public class AdminCommandManager implements Runnable {
             return;
         }
 
+        int quantity = command.quantity <= 0 ? item.quantity : command.quantity;
+        if (quantity > item.quantity) {
+            finish(command.id, "failed", "Người chơi chỉ còn " + item.quantity + " vật phẩm, ít hơn số lượng cần thu hồi.");
+            return;
+        }
+
         String itemName = item.template.name;
-        items.set(command.slot, ItemService.gI().createItemNull());
+        if (quantity >= item.quantity) {
+            items.set(command.slot, ItemService.gI().createItemNull());
+        } else {
+            item.quantity -= quantity;
+        }
 
         InventoryService.gI().sendItemBody(player);
         InventoryService.gI().sendItemBags(player);
         InventoryService.gI().sendItemBox(player);
-        Service.gI().sendThongBao(player, "Vật phẩm " + itemName + " đã bị quản trị viên thu hồi");
+        Service.gI().sendThongBao(player, "Vật phẩm " + itemName + " x" + quantity + " đã bị quản trị viên thu hồi");
         PlayerDAO.updatePlayer(player, false);
 
-        finish(command.id, "done", "Đã thu hồi " + itemName + " khi người chơi đang online.");
+        finish(command.id, "done", "Đã thu hồi " + itemName + " x" + quantity + " khi người chơi đang online.");
+    }
+
+    private void givePet(Command command) throws Exception {
+        Player player = Client.gI().getPlayerByID(command.playerId);
+        if (player == null || player.isOffline) {
+            return;
+        }
+
+        boolean replace = "replace".equals(command.options);
+        if (player.pet != null && !replace) {
+            finish(command.id, "failed", "Nhân vật đã có đệ tử.");
+            return;
+        }
+        if (!PetService.gI().grantPetByAdmin(player, command.itemId, command.quantity, replace)) {
+            finish(command.id, "failed", "Loại đệ tử hoặc hành tinh không hợp lệ.");
+            return;
+        }
+
+        PlayerDAO.updatePlayer(player, false);
+        Service.gI().sendThongBao(player, "Bạn đã được quản trị viên cấp đệ tử mới.");
+        finish(command.id, "done", "Đã cấp đệ tử khi người chơi online.");
+    }
+
+    private void giveItem(Command command) throws Exception {
+        Player player = Client.gI().getPlayerByID(command.playerId);
+        if (player == null || player.isOffline) {
+            finish(command.id, "offline", "Người chơi không online, hãy cấp lại khi offline.");
+            return;
+        }
+
+        Item item;
+        try {
+            item = ItemService.gI().createNewItem((short) command.itemId, Math.max(1, command.quantity));
+        } catch (Exception e) {
+            item = null;
+        }
+        if (item == null || item.template == null) {
+            finish(command.id, "failed", "Không có vật phẩm id " + command.itemId + ".");
+            return;
+        }
+        for (int[] option : parseOptions(command.options)) {
+            item.itemOptions.add(new Item.ItemOption(option[0], option[1]));
+        }
+
+        boolean added;
+        if ("items_box".equals(command.container)) {
+            added = putInto(player.inventory.itemsBox, item);
+        } else {
+            added = InventoryService.gI().addItemBag(player, item);
+        }
+        if (!added) {
+            finish(command.id, "failed", "Túi đồ của người chơi đã đầy.");
+            return;
+        }
+
+        InventoryService.gI().sendItemBags(player);
+        InventoryService.gI().sendItemBox(player);
+        Service.gI().sendThongBao(player, "Bạn được quản trị viên cấp " + item.template.name + " x" + item.quantity);
+        PlayerDAO.updatePlayer(player, false);
+
+        finish(command.id, "done", "Đã cấp " + item.template.name + " x" + item.quantity + " khi người chơi đang online.");
+    }
+
+    private boolean putInto(List<Item> items, Item item) {
+        for (int i = 0; i < items.size(); i++) {
+            Item slot = items.get(i);
+            if (slot == null || !slot.isNotNullItem()) {
+                items.set(i, item);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Chuỗi "21:80,47:2000" từ web */
+    private List<int[]> parseOptions(String options) {
+        List<int[]> result = new ArrayList<>();
+        if (options == null || options.isEmpty()) {
+            return result;
+        }
+        for (String part : options.split(",")) {
+            String[] pair = part.trim().split(":");
+            if (pair.length == 2) {
+                try {
+                    result.add(new int[]{Integer.parseInt(pair[0].trim()), Integer.parseInt(pair[1].trim())});
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return result;
     }
 
     private List<Item> getContainer(Player player, String container) {

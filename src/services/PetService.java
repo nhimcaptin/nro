@@ -19,6 +19,25 @@ public class PetService {
         return instance;
     }
 
+    public synchronized boolean grantPetByAdmin(Player player, int typePet, int gender, boolean replace) {
+        if (typePet < 0 || typePet > 4 || gender < 0 || gender > 2) {
+            return false;
+        }
+        if (player.pet != null) {
+            if (!replace) {
+                return false;
+            }
+            if (player.fusion.typeFusion != ConstPlayer.NON_FUSION) {
+                player.pet.unFusion();
+            }
+            ChangeMapService.gI().exitMap(player.pet);
+            player.pet.dispose();
+            player.pet = null;
+        }
+        createNewPet(player, typePet == 1, typePet == 2, typePet == 3, typePet == 4, (byte) gender);
+        return true;
+    }
+
     public void createNormalPet(Player player, int gender, byte... limitPower) {
         new Thread(() -> {
             try {
