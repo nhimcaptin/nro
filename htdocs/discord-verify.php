@@ -206,7 +206,7 @@ if (!$alreadyLinked && $error === '') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Liên Kết Discord | Ngọc Rồng Online</title>
+    <title>Liên Kết Discord | NhimsNRO</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>

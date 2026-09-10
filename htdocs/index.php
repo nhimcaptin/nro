@@ -63,7 +63,7 @@ if (!empty($_SESSION['user_id'])) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ngọc Rồng Online | Đấu Trường Vũ Trụ</title>
+    <title>NhimsNRO | Đấu Trường Vũ Trụ</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
@@ -75,7 +75,7 @@ if (!empty($_SESSION['user_id'])) {
     <div class="shell nav">
         <a class="brand" href="index.php">
             <img class="brand-icon" src="assets/images/14.png" alt="Dragon Ball">
-            <span class="brand-title-nro">Ngọc Rồng Online</span>
+            <span class="brand-title-nro">NhimsNRO</span>
         </a>
         <nav class="nav-links">
             <a class="active" href="index.php">Trang Chủ</a>
@@ -200,7 +200,7 @@ if (!empty($_SESSION['user_id'])) {
 </main>
 <footer>
     <div class="shell">
-        Ngọc Rồng Online · Máy chủ chiến trường 7 Viên Ngọc Rồng huyền thoại trên PC & Mobile.
+        NhimsNRO · Máy chủ chiến trường 7 Viên Ngọc Rồng huyền thoại trên PC & Mobile.
     </div>
 </footer>
 </body></html>

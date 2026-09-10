@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Đăng Nhập | Ngọc Rồng Online</title>
+    <title>Đăng Nhập | NhimsNRO</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <img src="assets/images/14.png" alt="Dragon Ball">
         </div>
         <h1>ĐĂNG NHẬP CHIẾN BINH</h1>
-        <p>Đăng nhập tài khoản để bước vào thế giới Ngọc Rồng Online.</p>
+        <p>Đăng nhập tài khoản để bước vào thế giới NhimsNRO.</p>
 
         <?php if ($errors): ?>
             <div class="alert error">

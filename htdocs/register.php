@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Đăng Ký Tài Khoản | Ngọc Rồng Online</title>
+    <title>Đăng Ký Tài Khoản | NhimsNRO</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <img src="assets/images/15.png" alt="Dragon Ball 2 Sao">
         </div>
         <h1>ĐĂNG KÝ TÀI KHOẢN MỚI</h1>
-        <p>Gia nhập hàng ngũ chiến binh vũ trụ Ngọc Rồng Online ngay hôm nay.</p>
+        <p>Gia nhập hàng ngũ chiến binh vũ trụ NhimsNRO ngay hôm nay.</p>
 
         <?php if ($errors): ?>
             <div class="alert error">

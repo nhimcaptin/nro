@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Đổi Mật Khẩu | Ngọc Rồng Online</title>
+    <title>Đổi Mật Khẩu | NhimsNRO</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>

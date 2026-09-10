@@ -497,7 +497,7 @@ function renderOption(array $option, array $optionNames): string {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Quản Trị Hệ Thống | Ngọc Rồng Online</title>
+    <title>Quản Trị Hệ Thống | NhimsNRO</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
@@ -509,7 +509,7 @@ function renderOption(array $option, array $optionNames): string {
     <div class="shell nav">
         <a class="brand" href="index.php">
             <img class="brand-icon" src="assets/images/14.png" alt="Dragon Ball">
-            <span class="brand-title-nro">Ngọc Rồng Online</span>
+            <span class="brand-title-nro">NhimsNRO</span>
         </a>
         <nav class="nav-links">
             <a href="index.php">Trang Chủ</a>
@@ -981,7 +981,7 @@ function renderOption(array $option, array $optionNames): string {
 </main>
 <footer>
     <div class="shell">
-        Ngọc Rồng Online · Hệ Thống Quản Trị Trung Tâm Admin.
+        NhimsNRO · Hệ Thống Quản Trị Trung Tâm Admin.
     </div>
 </footer>
 <?php if ($pendingCount > 0): ?>
