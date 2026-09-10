@@ -655,7 +655,7 @@ function renderOption(array $option, array $optionNames): string {
                             <td><strong style="font-family: 'Orbitron'; color: var(--db-yellow);"><?= formatNumber($row['power']) ?></strong></td>
                             <td>
                                 <span class="tag <?= $row['online'] ? 'on' : 'off' ?>">
-                                    <?= $row['online'] ? '● Online' : '○ Offline' ?>
+                                    <?= $row['online'] ? '● ON' : '○ OFF' ?>
                                 </span>
                                 <?php if ((int) ($row['ban'] ?? 0) === 1): ?>
                                     <span class="tag ban">Bị Khóa</span>
