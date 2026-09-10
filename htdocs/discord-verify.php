@@ -99,83 +99,105 @@ try {
     $error = $exception->getMessage();
 }
 
-if ($error === '' && isset($_GET['code'])) {
-    if (!hash_equals($_SESSION['discord_oauth_state'] ?? '', $_GET['state'] ?? '')) {
-        $error = 'Yêu cầu xác thực không hợp lệ. Vui lòng thử lại.';
-    } else {
+$discordClientId = defined('DISCORD_CLIENT_ID') ? DISCORD_CLIENT_ID : '';
+$discordClientSecret = defined('DISCORD_CLIENT_SECRET') ? DISCORD_CLIENT_SECRET : '';
+$discordRedirectUri = defined('DISCORD_REDIRECT_URI') ? DISCORD_REDIRECT_URI : '';
+$discordGuildId = defined('DISCORD_GUILD_ID') ? DISCORD_GUILD_ID : '';
+
+if (!$alreadyLinked && $error === '') {
+    if (isset($_GET['code'])) {
+        $code = (string) $_GET['code'];
+        $state = (string) ($_GET['state'] ?? '');
+        $savedState = (string) ($_SESSION['discord_oauth_state'] ?? '');
+        unset($_SESSION['discord_oauth_state']);
+
         try {
-            $token = discordRequest('https://discord.com/api/oauth2/token', [
-                'client_id' => $discordClientId,
-                'client_secret' => $discordClientSecret,
-                'grant_type' => 'authorization_code',
-                'code' => $_GET['code'],
-                'redirect_uri' => $discordRedirectUri,
-            ]);
-            $accessToken = $token['access_token'] ?? '';
-            $discordUser = discordRequest('https://discord.com/api/users/@me', null, 'Bearer ' . $accessToken);
-            $discordId = $discordUser['id'] ?? '';
-            if (!preg_match('/^\d{15,25}$/', $discordId)) {
-                throw new RuntimeException('Không lấy được Discord ID.');
+            if ($state === '' || !hash_equals($savedState, $state)) {
+                throw new RuntimeException('Yêu cầu xác thực Discord không hợp lệ.');
             }
-            if (!isDiscordGuildMember($discordGuildId, $accessToken)) {
-                throw new RuntimeException('Bạn cần tham gia Discord server của game trước khi liên kết.');
+            if ($discordClientId === '' || $discordClientSecret === '' || $discordRedirectUri === '') {
+                throw new RuntimeException('Chưa cấu hình thông số Discord OAuth.');
             }
+
+            $tokenData = discordRequest(
+                'https://discord.com/api/oauth2/token',
+                [
+                    'client_id' => $discordClientId,
+                    'client_secret' => $discordClientSecret,
+                    'grant_type' => 'authorization_code',
+                    'code' => $code,
+                    'redirect_uri' => $discordRedirectUri,
+                ]
+            );
+
+            $accessToken = (string) ($tokenData['access_token'] ?? '');
+            if ($accessToken === '') {
+                throw new RuntimeException('Không nhận được Discord Access Token.');
+            }
+
+            $profile = discordRequest('https://discord.com/api/users/@me', null, 'Bearer ' . $accessToken);
+            $discordUserId = (string) ($profile['id'] ?? '');
+            if ($discordUserId === '') {
+                throw new RuntimeException('Không thể lấy Discord User ID.');
+            }
+
+            if ($discordGuildId !== '' && !isDiscordGuildMember($discordGuildId, $accessToken)) {
+                throw new RuntimeException('Bạn cần tham gia máy chủ Discord của game trước khi liên kết.');
+            }
+
             $mysqli->begin_transaction();
-            $stmt = dbStmt($mysqli, 'SELECT discord_id FROM account WHERE id = ? FOR UPDATE');
-            $stmt->bind_param('i', $accountId);
-            $stmt->execute();
-            $account = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-            if (!$account) {
-                throw new RuntimeException('Tài khoản không tồn tại.');
-            }
-            if ($account['discord_id'] !== null && $account['discord_id'] !== $discordId) {
-                throw new RuntimeException('Tài khoản đã gắn với Discord khác.');
-            }
-            $stmt = dbStmt($mysqli, 'INSERT IGNORE INTO discord_identity (discord_id) VALUES (?)');
-            $stmt->bind_param('s', $discordId);
-            $stmt->execute();
-            $stmt->close();
             $stmt = dbStmt($mysqli, 'SELECT discord_id FROM discord_identity WHERE discord_id = ? FOR UPDATE');
-            $stmt->bind_param('s', $discordId);
+            $stmt->bind_param('s', $discordUserId);
             $stmt->execute();
+            $exists = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-            $stmt = dbStmt($mysqli, 'SELECT COUNT(*) AS total FROM account WHERE discord_id = ?');
-            $stmt->bind_param('s', $discordId);
-            $stmt->execute();
-            $total = (int) $stmt->get_result()->fetch_assoc()['total'];
-            $stmt->close();
-            if ($account['discord_id'] === null && $total >= 2) {
-                throw new RuntimeException('Discord này đã liên kết tối đa 2 tài khoản game.');
+            if ($exists) {
+                $mysqli->rollback();
+                throw new RuntimeException('Tài khoản Discord này đã được liên kết với một tài khoản game khác.');
             }
-            $stmt = dbStmt($mysqli, 'UPDATE account SET discord_id = ?, active = 1, update_time = CURRENT_TIMESTAMP WHERE id = ?');
-            $stmt->bind_param('si', $discordId, $accountId);
+
+            $stmt = dbStmt($mysqli, 'INSERT INTO discord_identity (discord_id) VALUES (?)');
+            $stmt->bind_param('s', $discordUserId);
             $stmt->execute();
             $stmt->close();
+
+            $stmt = dbStmt($mysqli, 'UPDATE account SET discord_id = ? WHERE id = ?');
+            $stmt->bind_param('si', $discordUserId, $accountId);
+            $stmt->execute();
+            $stmt->close();
+
             $mysqli->commit();
-            unset($_SESSION['discord_verify_account_id'], $_SESSION['discord_verify_username'], $_SESSION['discord_oauth_state']);
-            $redirect = !empty($_SESSION['user_id']) ? 'index.php?linked=1' : 'login.php?verified=1';
-            header('Location: ' . $redirect);
+            $alreadyLinked = true;
+            $linkedDiscordId = $discordUserId;
+
+            if (!empty($_SESSION['discord_verify_account_id'])) {
+                $_SESSION['user_id'] = (int) $_SESSION['discord_verify_account_id'];
+                $_SESSION['username'] = (string) $_SESSION['discord_verify_username'];
+                unset($_SESSION['discord_verify_account_id'], $_SESSION['discord_verify_username']);
+            }
+            header('Location: index.php?linked=1');
             exit;
         } catch (Throwable $exception) {
-            $mysqli->rollback();
+            if ($mysqli->connect_errno === 0) {
+                @$mysqli->rollback();
+            }
             $error = $exception->getMessage();
         }
-    }
-} elseif ($error === '' && !$alreadyLinked && isset($_GET['connect'])) {
-    if ($discordClientId === '' || $discordClientSecret === '' || $discordGuildId === '' || strpos($discordRedirectUri, 'YOUR-DOMAIN') !== false) {
-        $error = 'Discord OAuth hoặc kiểm tra server Discord chưa được cấu hình. Hãy liên hệ quản trị viên.';
-    } else {
-        $_SESSION['discord_oauth_state'] = bin2hex(random_bytes(32));
-        $query = http_build_query([
-            'client_id' => $discordClientId,
-            'redirect_uri' => $discordRedirectUri,
-            'response_type' => 'code',
-            'scope' => 'identify guilds',
-            'state' => $_SESSION['discord_oauth_state'],
-        ]);
-        header('Location: https://discord.com/oauth2/authorize?' . $query);
-        exit;
+    } elseif (isset($_GET['connect'])) {
+        if ($discordClientId === '' || $discordClientSecret === '' || $discordRedirectUri === '') {
+            $error = 'Chưa cấu hình thông số Discord OAuth trong config.php.';
+        } else {
+            $_SESSION['discord_oauth_state'] = bin2hex(random_bytes(16));
+            $query = http_build_query([
+                'client_id' => $discordClientId,
+                'redirect_uri' => $discordRedirectUri,
+                'response_type' => 'code',
+                'scope' => 'identify guilds',
+                'state' => $_SESSION['discord_oauth_state'],
+            ]);
+            header('Location: https://discord.com/oauth2/authorize?' . $query);
+            exit;
+        }
     }
 }
 ?>
@@ -184,22 +206,36 @@ if ($error === '' && isset($_GET['code'])) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Liên kết Discord | Ngọc Rồng</title>
+    <title>Liên Kết Discord | Ngọc Rồng Online</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
-<div class="auth-wrap"><div class="auth-card">
-    <div class="kicker">Bảo vệ cộng đồng</div>
-    <h1>Liên kết Discord</h1>
-    <?php if ($alreadyLinked): ?>
-        <p>Tài khoản <strong><?= htmlspecialchars($username) ?></strong> đã liên kết Discord.</p>
-        <div class="alert success">Discord ID: <?= htmlspecialchars($linkedDiscordId) ?></div>
-    <?php else: ?>
-        <p>Tài khoản <strong><?= htmlspecialchars($username) ?></strong> chưa liên kết Discord. Việc liên kết là tùy chọn; mỗi Discord gắn tối đa 2 tài khoản game.</p>
-        <?php if ($error): ?><div class="alert error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-        <a class="btn" href="discord-verify.php?connect=1"><?= $error ? 'Thử lại liên kết Discord' : 'Liên kết Discord' ?></a>
-    <?php endif; ?>
-    <div class="auth-foot"><a href="index.php">← Trang chủ</a><?php if (empty($_SESSION['user_id'])): ?> · <a href="login.php">Đăng nhập</a><?php endif; ?></div>
-</div></div>
+<div class="div-12">
+    <span class="badge-18">18+</span>
+    <span>Chơi quá 180 phút một ngày sẽ ảnh hưởng xấu đến sức khỏe.</span>
+</div>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-icon-header">
+            <img src="assets/images/17.png" alt="Dragon Ball 4 Sao">
+        </div>
+        <h1>LIÊN KẾT DISCORD</h1>
+        <?php if ($alreadyLinked): ?>
+            <p>Tài khoản <strong style="color: #ffbe0b;"><?= htmlspecialchars($username) ?></strong> đã liên kết thành công với tài khoản Discord.</p>
+            <div class="alert success">⚡ Discord ID: <?= htmlspecialchars($linkedDiscordId) ?></div>
+        <?php else: ?>
+            <p>Tài khoản <strong style="color: #ffbe0b;"><?= htmlspecialchars($username) ?></strong> chưa liên kết Discord. Hãy liên kết để bảo vệ tài khoản và nhận các đặc quyền chiến binh.</p>
+            <?php if ($error): ?>
+                <div class="alert error"><?= htmlspecialchars($error) ?></div>
+            <?php endif; ?>
+            <a class="btn secondary" style="width: 100%;" href="discord-verify.php?connect=1">
+                <?= $error ? 'Thử Lại Liên Kết Discord' : '⚡ Kết Nối Tài Khoản Discord Ngay' ?>
+            </a>
+        <?php endif; ?>
+        <div class="auth-foot">
+            <a href="index.php">← Về Trang Chủ</a><?php if (empty($_SESSION['user_id'])): ?> · <a href="login.php">Đăng nhập</a><?php endif; ?>
+        </div>
+    </div>
+</div>
 </body>
 </html>

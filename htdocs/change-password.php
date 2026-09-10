@@ -59,24 +59,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Đổi mật khẩu | Ngọc Rồng</title>
+    <title>Đổi Mật Khẩu | Ngọc Rồng Online</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
-<div class="auth-wrap"><div class="auth-card">
-    <div class="kicker">Bảo vệ tài khoản</div>
-    <h1>Đổi mật khẩu</h1>
-    <p>Xin chào <?= htmlspecialchars($_SESSION['username']) ?>. Hãy chọn một mật khẩu mới.</p>
-    <?php if ($errors): ?><div class="alert error"><?php foreach ($errors as $error): ?><?= htmlspecialchars($error) ?><br><?php endforeach; ?></div><?php endif; ?>
-    <?php if ($success): ?><div class="alert success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
-    <form method="post">
-        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-        <div class="field"><label for="current_password">Mật khẩu hiện tại</label><input id="current_password" type="password" name="current_password" required></div>
-        <div class="field"><label for="new_password">Mật khẩu mới</label><input id="new_password" type="password" name="new_password" minlength="6" required></div>
-        <div class="field"><label for="confirm_password">Nhập lại mật khẩu mới</label><input id="confirm_password" type="password" name="confirm_password" minlength="6" required></div>
-        <button class="btn" type="submit">Lưu mật khẩu</button>
-    </form>
-    <div class="auth-foot"><a href="index.php">← Trang chủ</a> · <a href="discord-verify.php">Liên kết Discord</a> · <a href="logout.php">Đăng xuất</a></div>
-</div></div>
+<div class="div-12">
+    <span class="badge-18">18+</span>
+    <span>Chơi quá 180 phút một ngày sẽ ảnh hưởng xấu đến sức khỏe.</span>
+</div>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-icon-header">
+            <img src="assets/images/16.png" alt="Dragon Ball 3 Sao">
+        </div>
+        <h1>ĐỔI MẬT KHẨU</h1>
+        <p>Tài khoản hiện tại: <strong style="color: #ffbe0b;"><?= htmlspecialchars($_SESSION['username']) ?></strong></p>
+
+        <?php if ($errors): ?>
+            <div class="alert error">
+                <?php foreach ($errors as $error): ?><?= htmlspecialchars($error) ?><br><?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($success): ?>
+            <div class="alert success">
+                <?= htmlspecialchars($success) ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="post">
+            <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+            <div class="field">
+                <label for="current_password">Mật khẩu hiện tại</label>
+                <input id="current_password" type="password" name="current_password" placeholder="Nhập mật khẩu hiện tại" required>
+            </div>
+            <div class="field">
+                <label for="new_password">Mật khẩu mới (tối thiểu 6 ký tự)</label>
+                <input id="new_password" type="password" name="new_password" minlength="6" placeholder="Nhập mật khẩu mới" required>
+            </div>
+            <div class="field">
+                <label for="confirm_password">Xác nhận lại mật khẩu mới</label>
+                <input id="confirm_password" type="password" name="confirm_password" minlength="6" placeholder="Nhập lại mật khẩu mới" required>
+            </div>
+            <button class="btn" type="submit">⚡ Xác Nhận Thay Đổi</button>
+        </form>
+        <div class="auth-foot">
+            <a href="index.php">← Về Trang Chủ</a> · <a href="discord-verify.php">Liên kết Discord</a> · <a href="logout.php">Đăng Xuất</a>
+        </div>
+    </div>
+</div>
 </body>
 </html>

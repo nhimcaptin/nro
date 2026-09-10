@@ -68,30 +68,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng Ký Tài Khoản | Ngọc Rồng Online</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
-<div class="auth-wrap"><div class="auth-card">
-    <div class="kicker">Khởi đầu hành trình</div><h1>Đăng ký</h1><p>Tạo tài khoản và bước vào vũ trụ chiến binh.</p>
-
-    <?php if ($errors): ?>
-        <div class="alert error">
-            <?php foreach ($errors as $e) echo htmlspecialchars($e) . '<br>'; ?>
+<div class="div-12">
+    <span class="badge-18">18+</span>
+    <span>Chơi quá 180 phút một ngày sẽ ảnh hưởng xấu đến sức khỏe.</span>
+</div>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-icon-header">
+            <img src="assets/images/15.png" alt="Dragon Ball 2 Sao">
         </div>
-    <?php endif; ?>
+        <h1>ĐĂNG KÝ TÀI KHOẢN MỚI</h1>
+        <p>Gia nhập hàng ngũ chiến binh vũ trụ Ngọc Rồng Online ngay hôm nay.</p>
 
-    <?php if ($success): ?>
-        <div class="alert success">
-            <?= htmlspecialchars($success) ?>
+        <?php if ($errors): ?>
+            <div class="alert error">
+                <?php foreach ($errors as $e) echo htmlspecialchars($e) . '<br>'; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($success): ?>
+            <div class="alert success">
+                <?= htmlspecialchars($success) ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="post">
+            <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+            <div class="field">
+                <label for="username">Tài khoản (3 - 20 ký tự)</label>
+                <input id="username" type="text" name="username" maxlength="20" placeholder="Nhập tên tài khoản" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
+            </div>
+            <div class="field">
+                <label for="password">Mật khẩu (tối thiểu 6 ký tự)</label>
+                <input id="password" type="password" name="password" placeholder="Nhập mật khẩu" required>
+            </div>
+            <div class="field">
+                <label for="repass">Xác nhận lại mật khẩu</label>
+                <input id="repass" type="password" name="repass" placeholder="Nhập lại mật khẩu" required>
+            </div>
+            <button class="btn" type="submit">⚡ Khởi Tạo Tài Khoản</button>
+        </form>
+        <div class="auth-foot">
+            <a href="index.php">← Về Trang Chủ</a> · Đã có tài khoản? <a href="login.php">Đăng nhập ngay</a>
         </div>
-    <?php endif; ?>
-
-    <form method="post"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-        <div class="field"><label for="username">Tài khoản</label><input id="username" type="text" name="username" maxlength="20" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"></div>
-        <div class="field"><label for="password">Mật khẩu</label><input id="password" type="password" name="password" required></div>
-        <div class="field"><label for="repass">Nhập lại mật khẩu</label><input id="repass" type="password" name="repass" required></div>
-        <button class="btn" type="submit">Bắt đầu chơi</button>
-    </form><div class="auth-foot"><a href="index.php">← Trang chủ</a> · Đã có tài khoản? <a href="login.php">Đăng nhập</a></div>
-</div></div>
+    </div>
+</div>
 </body>
 </html>

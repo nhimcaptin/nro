@@ -35,7 +35,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Đăng nhập | Ngọc Rồng</title><link rel="stylesheet" href="assets/css/site.css"></head><body>
-<div class="auth-wrap"><div class="auth-card"><div class="kicker">Cổng chiến binh</div><h1>Đăng nhập</h1><p>Trở lại hành trình và tiếp tục chinh phục vũ trụ.</p>
-<?php if ($errors): ?><div class="alert error"><?php foreach ($errors as $error): ?><?= htmlspecialchars($error) ?><br><?php endforeach; ?></div><?php endif; ?>
-<form method="post"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><div class="field"><label for="username">Tài khoản</label><input id="username" name="username" maxlength="20" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"></div><div class="field"><label for="password">Mật khẩu</label><input id="password" type="password" name="password" required></div><button class="btn" type="submit">Vào vũ trụ</button></form><div class="auth-foot"><a href="index.php">← Trang chủ</a> · Chưa có tài khoản? <a href="register.php">Đăng ký</a></div></div></div></body></html>
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng Nhập | Ngọc Rồng Online</title>
+    <link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<div class="div-12">
+    <span class="badge-18">18+</span>
+    <span>Chơi quá 180 phút một ngày sẽ ảnh hưởng xấu đến sức khỏe.</span>
+</div>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-icon-header">
+            <img src="assets/images/14.png" alt="Dragon Ball">
+        </div>
+        <h1>ĐĂNG NHẬP CHIẾN BINH</h1>
+        <p>Đăng nhập tài khoản để bước vào thế giới Ngọc Rồng Online.</p>
+
+        <?php if ($errors): ?>
+            <div class="alert error">
+                <?php foreach ($errors as $error): ?>
+                    <?= htmlspecialchars($error) ?><br>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="post">
+            <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+            <div class="field">
+                <label for="username">Tên tài khoản</label>
+                <input id="username" name="username" maxlength="20" placeholder="Nhập tài khoản" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
+            </div>
+            <div class="field">
+                <label for="password">Mật khẩu</label>
+                <input id="password" type="password" name="password" placeholder="Nhập mật khẩu" required>
+            </div>
+            <button class="btn" type="submit">⚡ Đăng Nhập Ngay</button>
+        </form>
+
+        <div class="auth-foot">
+            <a href="index.php">← Về Trang Chủ</a> · Chưa có tài khoản? <a href="register.php">Đăng ký ngay</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

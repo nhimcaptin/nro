@@ -432,7 +432,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'give_
     }
 }
 
-/* ------------------------- Dữ liệu hiển thị ------------------------- */
+$currentTab = $_GET['tab'] ?? ($playerId > 0 ? 'inventory' : 'players');
+$currentBag = $_GET['bag'] ?? 'overview';
+if ($currentBag !== 'overview' && !isset(CONTAINERS[$currentBag])) {
+    $currentBag = 'overview';
+}
 $search = trim((string) ($_GET['q'] ?? ''));
 $players = [];
 $sql = 'SELECT p.id, p.name, p.gender, p.data_point, a.username, a.ban, a.last_time_login, a.last_time_logout
@@ -468,18 +472,20 @@ if ($playerId > 0) {
 
 $commands = [];
 $cmdSql = 'SELECT c.*, p.name AS player_name FROM admin_command c LEFT JOIN player p ON p.id = c.player_id'
-    . ($playerId > 0 ? ' WHERE c.player_id = ' . $playerId : '') . ' ORDER BY c.id DESC LIMIT 20';
+    . ($playerId > 0 ? ' WHERE c.player_id = ' . $playerId : '') . ' ORDER BY c.id DESC LIMIT 50';
 $rs = $mysqli->query($cmdSql);
 while ($rs && $row = $rs->fetch_assoc()) {
     $commands[] = $row;
 }
 
 $recallLogs = [];
-$logSql = 'SELECT * FROM admin_item_log' . ($playerId > 0 ? ' WHERE player_id = ' . $playerId : '') . ' ORDER BY id DESC LIMIT 20';
+$logSql = 'SELECT * FROM admin_item_log' . ($playerId > 0 ? ' WHERE player_id = ' . $playerId : '') . ' ORDER BY id DESC LIMIT 50';
 $rs = $mysqli->query($logSql);
 while ($rs && $row = $rs->fetch_assoc()) {
     $recallLogs[] = $row;
 }
+
+$pendingCount = count(array_filter($commands, fn($c) => $c['status'] === 'pending'));
 
 function renderOption(array $option, array $optionNames): string {
     $name = $optionNames[$option[0]] ?? ('Option #' . $option[0]);
@@ -491,254 +497,495 @@ function renderOption(array $option, array $optionNames): string {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Quản trị | Ngọc Rồng</title>
+    <title>Quản Trị Hệ Thống | Ngọc Rồng Online</title>
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
-<header class="site-header"><div class="shell nav">
-    <a class="brand" href="index.php"><span class="brand-mark">★</span>Ngọc Rồng</a>
-    <nav class="nav-links">
-        <a href="index.php">Bảng xếp hạng</a>
-        <a href="admin.php">Quản trị</a>
-        <a href="logout.php">Đăng xuất</a>
-    </nav>
-</div></header>
-<main><div class="shell">
-    <div class="section-heading">
-        <div><div class="kicker">Bảng điều khiển</div><h2>Quản lý nhân vật</h2></div>
-        <p>Xem chỉ số, trang bị và thu hồi vật phẩm</p>
+<div class="div-12">
+    <span class="badge-18">18+</span>
+    <span>Chơi quá 180 phút một ngày sẽ ảnh hưởng xấu đến sức khỏe.</span>
+</div>
+<header class="site-header">
+    <div class="shell nav">
+        <a class="brand" href="index.php">
+            <img class="brand-icon" src="assets/images/14.png" alt="Dragon Ball">
+            <span class="brand-title-nro">Ngọc Rồng Online</span>
+        </a>
+        <nav class="nav-links">
+            <a href="index.php">Trang Chủ</a>
+            <a class="active" href="admin.php">Quản Trị Viên</a>
+            <a href="logout.php">Đăng Xuất (<?= htmlspecialchars($_SESSION['username']) ?>)</a>
+        </nav>
     </div>
-
-    <?php if ($errors): ?><div class="alert error"><?php foreach ($errors as $error): ?><?= htmlspecialchars($error) ?><br><?php endforeach; ?></div><?php endif; ?>
-    <?php if ($success): ?><div class="notice"><?= htmlspecialchars($success) ?></div><?php endif; ?>
-
-    <section class="panel admin-block">
-        <div class="panel-head"><h3>Danh sách nhân vật</h3><small>Tối đa 200 kết quả</small></div>
-        <form class="admin-search" method="get">
-            <input name="q" placeholder="Tìm theo tên nhân vật hoặc tài khoản" value="<?= htmlspecialchars($search) ?>">
-            <button class="btn" type="submit">Tìm</button>
-        </form>
-        <table class="admin-table">
-            <thead><tr><th>ID</th><th>Nhân vật</th><th>Tài khoản</th><th>Sức mạnh</th><th>Trạng thái</th><th></th></tr></thead>
-            <tbody>
-            <?php if (!$players): ?><tr><td colspan="6" class="empty">Không có nhân vật nào.</td></tr><?php endif; ?>
-            <?php foreach ($players as $row): ?>
-                <tr>
-                    <td><?= (int) $row['id'] ?></td>
-                    <td><strong><?= htmlspecialchars((string) $row['name']) ?></strong></td>
-                    <td><?= htmlspecialchars((string) ($row['username'] ?? '—')) ?></td>
-                    <td><?= formatNumber($row['power']) ?></td>
-                    <td>
-                        <span class="tag <?= $row['online'] ? 'on' : 'off' ?>"><?= $row['online'] ? 'Online' : 'Offline' ?></span>
-                        <?php if ((int) ($row['ban'] ?? 0) === 1): ?><span class="tag ban">Bị khóa</span><?php endif; ?>
-                    </td>
-                    <td><a class="btn secondary" href="admin.php?player=<?= (int) $row['id'] ?><?= $search !== '' ? '&q=' . urlencode($search) : '' ?>">Xem</a></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </section>
-
-    <?php if ($detail): ?>
-        <?php
-        $point = json_decode((string) $detail['data_point'], true) ?: [];
-        $inventory = json_decode((string) $detail['data_inventory'], true) ?: [];
-        $online = isAccountOnline($detail);
-        ?>
-        <section class="panel admin-block">
-            <div class="panel-head">
-                <h3><?= htmlspecialchars((string) $detail['name']) ?></h3>
-                <small>Tài khoản: <?= htmlspecialchars((string) ($detail['username'] ?? '—')) ?> · <?= $online ? 'Đang online' : 'Offline' ?></small>
+</header>
+<main>
+    <div class="shell">
+        <div class="main-box-nro">
+            <div class="admin-header-bar">
+                <div class="admin-title-wrap">
+                    <h2>Bảng Điều Khiển Quản Trị Máy Chủ</h2>
+                    <p>Quản lý tài khoản người chơi, chỉ số sức mạnh, túi đồ trang bị, cấp phát vật phẩm & lệnh máy chủ.</p>
+                </div>
+                <?php if ($detail): ?>
+                    <div style="text-align: right;">
+                        <span style="color: #4a2818; font-size: 11px;">Đang chọn nhân vật:</span>
+                        <div style="font-size: 15px; font-weight: 900; color: #a82400;">
+                            ⚡ <?= htmlspecialchars((string) $detail['name']) ?> (ID: #<?= (int) $detail['id'] ?>)
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
-            <?php if ($online): ?>
-                <div class="notice">Nhân vật đang online — dữ liệu hiển thị lấy từ lần lưu gần nhất của server nên có thể trễ vài phút. Lệnh thu hồi sẽ được gửi xuống server và áp dụng trực tiếp trong game sau vài giây.</div>
-            <?php endif; ?>
-            <div class="stat-grid">
-                <?php foreach (POINT_LABELS as $index => $label): ?>
-                    <div class="stat"><span><?= htmlspecialchars($label) ?></span><strong><?= formatNumber($point[$index] ?? 0) ?></strong></div>
-                <?php endforeach; ?>
-                <div class="stat"><span>Vàng</span><strong><?= formatNumber($inventory[0] ?? 0) ?></strong></div>
-                <div class="stat"><span>Ngọc</span><strong><?= formatNumber($inventory[1] ?? 0) ?></strong></div>
-                <div class="stat"><span>Hồng ngọc</span><strong><?= formatNumber($inventory[2] ?? 0) ?></strong></div>
-                <div class="stat"><span>Vip</span><strong><?= formatNumber($detail['vip'] ?? 0) ?></strong></div>
-                <div class="stat"><span>Tổng nạp</span><strong><?= formatNumber($detail['tongnap'] ?? 0) ?></strong></div>
+
+        <?php if ($errors): ?>
+            <div class="alert error">
+                <?php foreach ($errors as $error): ?><?= htmlspecialchars($error) ?><br><?php endforeach; ?>
             </div>
-        </section>
+        <?php endif; ?>
+        <?php if ($success): ?>
+            <div class="notice">
+                <span>✨</span> <?= htmlspecialchars($success) ?>
+            </div>
+        <?php endif; ?>
 
-        <section class="panel admin-block">
-            <div class="panel-head"><h3>Cấp đệ tử</h3><small>Áp dụng ngay hoặc khi đăng nhập</small></div>
-            <form class="give-form" method="post" onsubmit="return confirm('Xác nhận cấp đệ tử cho nhân vật này?');">
-                <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-                <input type="hidden" name="action" value="give_pet">
-                <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
-                <div class="field">
-                    <label for="pet-type">Loại đệ tử</label>
-                    <select id="pet-type" name="pet_type">
-                        <option value="0">Đệ tử thường</option>
-                        <option value="1">Mabư</option>
-                        <option value="2">Beerus</option>
-                        <option value="3">Black Goku</option>
-                        <option value="4">Black Goku Rose</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="pet-gender">Hành tinh</label>
-                    <select id="pet-gender" name="pet_gender">
-                        <option value="0">Trái Đất</option>
-                        <option value="1">Namếc</option>
-                        <option value="2">Xayda</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="pet-reason">Lý do</label>
-                    <input id="pet-reason" name="reason" maxlength="255">
-                </div>
-                <label class="check-field">
-                    <input type="checkbox" name="replace_pet" value="1">
-                    Thay thế đệ tử hiện có (đệ tử cũ và trang bị đang mặc sẽ mất)
-                </label>
-                <button class="btn" type="submit">Cấp đệ tử</button>
-            </form>
-        </section>
+        <!-- HỆ THỐNG MENU TABS ĐIỀU HƯỚNG -->
+        <nav class="admin-tabs-nav">
+            <a class="tab-link <?= $currentTab === 'players' ? 'active' : '' ?>" href="admin.php?tab=players<?= $playerId > 0 ? '&player=' . $playerId : '' ?><?= $search !== '' ? '&q=' . urlencode($search) : '' ?>">
+                <span class="tab-icon">👥</span> Quản Lý Nhân Vật
+            </a>
+            <a class="tab-link <?= $currentTab === 'inventory' ? 'active' : '' ?>" href="admin.php?tab=inventory<?= $playerId > 0 ? '&player=' . $playerId : '' ?>">
+                <span class="tab-icon">🎒</span> Túi Đồ & Thu Hồi
+                <?php if ($detail): ?><span class="tab-badge"><?= htmlspecialchars((string) $detail['name']) ?></span><?php endif; ?>
+            </a>
+            <a class="tab-link <?= $currentTab === 'give' ? 'active' : '' ?>" href="admin.php?tab=give<?= $playerId > 0 ? '&player=' . $playerId : '' ?>">
+                <span class="tab-icon">🎁</span> Cấp Đồ & Đệ Tử
+                <?php if ($detail): ?><span class="tab-badge"><?= htmlspecialchars((string) $detail['name']) ?></span><?php endif; ?>
+            </a>
+            <a class="tab-link <?= $currentTab === 'commands' ? 'active' : '' ?>" href="admin.php?tab=commands<?= $playerId > 0 ? '&player=' . $playerId : '' ?>">
+                <span class="tab-icon">⚡</span> Hàng Đợi Server
+                <?php if ($pendingCount > 0): ?><span class="tab-badge" style="background: var(--db-orange); color: #fff;"><?= $pendingCount ?> chờ</span><?php endif; ?>
+            </a>
+            <a class="tab-link <?= $currentTab === 'logs' ? 'active' : '' ?>" href="admin.php?tab=logs<?= $playerId > 0 ? '&player=' . $playerId : '' ?>">
+                <span class="tab-icon">📜</span> Lịch Sử Thao Tác
+            </a>
+        </nav>
 
-        <section class="panel admin-block">
-            <div class="panel-head"><h3>Cấp vật phẩm</h3><small>Vào hành trang hoặc rương đồ</small></div>
-            <form class="give-form" method="post">
-                <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-                <input type="hidden" name="action" value="give">
-                <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
-                <div class="field">
-                    <label for="give-item">Vật phẩm</label>
-                    <input id="give-item" name="item_id" list="item-list" required placeholder="Nhập ID vật phẩm">
-                    <datalist id="item-list">
-                        <?php foreach ($itemNames as $id => $name): ?><option value="<?= (int) $id ?>"><?= htmlspecialchars($name) ?></option><?php endforeach; ?>
-                    </datalist>
-                </div>
-                <div class="field">
-                    <label for="give-quantity">Số lượng</label>
-                    <input id="give-quantity" type="number" name="quantity" min="1" max="1000000" value="1" required>
-                </div>
-                <div class="field">
-                    <label for="give-container">Nơi nhận</label>
-                    <select id="give-container" name="container">
-                        <option value="items_bag">Hành trang</option>
-                        <option value="items_box">Rương đồ</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="give-options">Chỉ số (tùy chọn)</label>
-                    <input id="give-options" name="options" placeholder="VD: 21:80, 47:2000">
-                </div>
-                <div class="field">
-                    <label for="give-reason">Lý do</label>
-                    <input id="give-reason" name="reason" maxlength="255">
-                </div>
-                <button class="btn" type="submit">Cấp vật phẩm</button>
-            </form>
-        </section>
-
-        <?php foreach (CONTAINERS as $column => $label): ?>
-            <?php $items = parseContainer($detail[$column] ?? null); ?>
+        <!-- ====================================================================
+             TAB 1: QUẢN LÝ NHÂN VẬT & TÀI KHOẢN (PLAYERS)
+             ==================================================================== -->
+        <?php if ($currentTab === 'players'): ?>
             <section class="panel admin-block">
-                <div class="panel-head"><h3><?= htmlspecialchars($label) ?></h3><small><?= count(array_filter($items)) ?> vật phẩm</small></div>
+                <div class="panel-head">
+                    <h3>👥 DANH SÁCH CHIẾN BINH MÁY CHỦ</h3>
+                    <small><?= count($players) ?> nhân vật hiển thị</small>
+                </div>
+                <form class="admin-search" method="get">
+                    <input type="hidden" name="tab" value="players">
+                    <input name="q" placeholder="🔍 Tìm kiếm theo tên nhân vật hoặc tên tài khoản..." value="<?= htmlspecialchars($search) ?>">
+                    <button class="btn" type="submit">Tìm Kiếm</button>
+                    <?php if ($search !== ''): ?>
+                        <a class="btn secondary" href="admin.php?tab=players">Xóa Lọc</a>
+                    <?php endif; ?>
+                </form>
                 <table class="admin-table">
-                    <thead><tr><th>Ô</th><th>Vật phẩm</th><th>SL</th><th>Chỉ số</th><th></th></tr></thead>
-                    <tbody>
-                    <?php $hasItem = false; ?>
-                    <?php foreach ($items as $slot => $item): ?>
-                        <?php if (!$item) { continue; } $hasItem = true; ?>
+                    <thead>
                         <tr>
-                            <td><?= (int) $slot ?></td>
+                            <th>ID</th>
+                            <th>Nhân Vật</th>
+                            <th>Hành Tinh</th>
+                            <th>Tài Khoản</th>
+                            <th>Sức Mạnh</th>
+                            <th>Trạng Thái</th>
+                            <th>Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (!$players): ?>
+                        <tr><td colspan="7" class="empty">Không tìm thấy nhân vật nào phù hợp.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($players as $row): 
+                        $planet = (int) $row['gender'] === 0 ? 'Trái Đất' : ((int) $row['gender'] === 1 ? 'Namếc' : 'Xayda');
+                    ?>
+                        <tr style="<?= $playerId === (int)$row['id'] ? 'background: rgba(255, 102, 0, 0.08);' : '' ?>">
+                            <td><strong style="color: var(--text-gold);">#<?= (int) $row['id'] ?></strong></td>
+                            <td><strong style="font-size: 17px; color: #fff;"><?= htmlspecialchars((string) $row['name']) ?></strong></td>
+                            <td><span style="color: var(--text-muted);"><?= $planet ?></span></td>
+                            <td><?= htmlspecialchars((string) ($row['username'] ?? '—')) ?></td>
+                            <td><strong style="font-family: 'Orbitron'; color: var(--db-yellow);"><?= formatNumber($row['power']) ?></strong></td>
                             <td>
-                                <strong><?= htmlspecialchars($itemNames[$item['template_id']] ?? ('#' . $item['template_id'])) ?></strong>
-                                <div class="rank-meta">ID <?= (int) $item['template_id'] ?></div>
-                            </td>
-                            <td><?= (int) $item['quantity'] ?></td>
-                            <td class="opt-cell">
-                                <?php if (!$item['options']): ?><span class="rank-meta">Không có</span><?php endif; ?>
-                                <?php foreach ($item['options'] as $option): ?><div><?= renderOption($option, $optionNames) ?></div><?php endforeach; ?>
+                                <span class="tag <?= $row['online'] ? 'on' : 'off' ?>">
+                                    <?= $row['online'] ? '● Online' : '○ Offline' ?>
+                                </span>
+                                <?php if ((int) ($row['ban'] ?? 0) === 1): ?>
+                                    <span class="tag ban">Bị Khóa</span>
+                                <?php endif; ?>
                             </td>
                             <td>
-                                <form method="post" onsubmit="return confirm('Thu hồi vật phẩm này?');">
-                                    <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-                                    <input type="hidden" name="action" value="recall">
-                                    <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
-                                    <input type="hidden" name="container" value="<?= htmlspecialchars($column) ?>">
-                                    <input type="hidden" name="slot" value="<?= (int) $slot ?>">
-                                    <input class="qty" type="number" name="quantity" min="1" max="<?= (int) $item['quantity'] ?>" value="<?= (int) $item['quantity'] ?>" required title="Số lượng thu hồi">
-                                    <input name="reason" placeholder="Lý do" maxlength="255">
-                                    <button class="btn danger" type="submit">Thu hồi</button>
-                                </form>
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <a class="btn secondary" style="padding: 5px 10px; font-size: 12px;" href="admin.php?tab=inventory&player=<?= (int) $row['id'] ?>&bag=overview">⚡ Chỉ Số</a>
+                                    <a class="btn secondary" style="padding: 5px 10px; font-size: 12px;" href="admin.php?tab=inventory&player=<?= (int) $row['id'] ?>&bag=items_body">🎒 Túi Đồ</a>
+                                    <a class="btn" style="padding: 5px 10px; font-size: 12px;" href="admin.php?tab=give&player=<?= (int) $row['id'] ?>">🎁 Cấp Đồ</a>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
-                    <?php if (!$hasItem): ?><tr><td colspan="5" class="empty">Trống.</td></tr><?php endif; ?>
                     </tbody>
                 </table>
             </section>
-        <?php endforeach; ?>
-    <?php endif; ?>
+        <?php endif; ?>
 
-    <section class="panel admin-block">
-        <div class="panel-head"><h3>Lệnh gửi server</h3><small>Thu hồi khi người chơi đang online · tự làm mới mỗi 10s</small></div>
-        <table class="admin-table">
-            <thead><tr><th>Thời gian</th><th>Hành động</th><th>Nhân vật</th><th>Vật phẩm</th><th>Túi</th><th>Ô</th><th>Trạng thái</th></tr></thead>
-            <tbody>
-            <?php if (!$commands): ?><tr><td colspan="7" class="empty">Chưa có lệnh nào.</td></tr><?php endif; ?>
-            <?php foreach ($commands as $cmd): ?>
+        <!-- ====================================================================
+             TAB 2: TÚI ĐỒ & THU HỒI VẬT PHẨM (INVENTORY)
+             ==================================================================== -->
+        <?php if ($currentTab === 'inventory'): ?>
+            <?php if (!$detail): ?>
+                <div class="panel empty" style="padding: 50px 20px;">
+                    <div style="font-size: 40px; margin-bottom: 12px;">🎒</div>
+                    <h3>Chưa chọn nhân vật để xem túi đồ!</h3>
+                    <p style="color: var(--text-muted); margin-top: 6px;">Vui lòng chuyển qua tab "Quản Lý Nhân Vật" và bấm <strong>"Túi Đồ"</strong> vào một người chơi bất kỳ.</p>
+                    <a class="btn" href="admin.php?tab=players" style="margin-top: 18px;">👥 Mở Danh Sách Nhân Vật</a>
+                </div>
+            <?php else: ?>
                 <?php
-                $status = (string) $cmd['status'];
-                $statusLabel = ['pending' => 'Đang chờ server', 'done' => 'Đã thu hồi', 'offline' => 'Người chơi đã offline', 'failed' => 'Thất bại'][$status] ?? $status;
-                $statusClass = $status === 'done' ? 'on' : ($status === 'pending' ? 'off' : 'ban');
+                $point = json_decode((string) $detail['data_point'], true) ?: [];
+                $inventory = json_decode((string) $detail['data_inventory'], true) ?: [];
+                $online = isAccountOnline($detail);
+                
+                // Đếm số lượng item trong từng túi
+                $bagCounts = [];
+                foreach (CONTAINERS as $col => $lbl) {
+                    $cItems = parseContainer($detail[$col] ?? null);
+                    $bagCounts[$col] = count(array_filter($cItems));
+                }
                 ?>
-                <tr>
-                    <td><?= htmlspecialchars((string) $cmd['created_at']) ?></td>
-                    <td><?= $cmd['type'] === 'give_pet' ? 'Cấp đệ tử' : ($cmd['type'] === 'give_item' ? 'Cấp đồ' : 'Thu hồi') ?></td>
-                    <td><?= htmlspecialchars((string) ($cmd['player_name'] ?? ('#' . $cmd['player_id']))) ?></td>
-                    <td>
-                        <?php if ($cmd['type'] === 'give_pet'): ?>
-                            <?= htmlspecialchars(PET_TYPES[(int) $cmd['item_id']] ?? ('Loại #' . $cmd['item_id'])) ?>
-                        <?php else: ?>
-                            <?= htmlspecialchars($itemNames[(int) $cmd['item_id']] ?? ('#' . $cmd['item_id'])) ?> x<?= (int) $cmd['quantity'] ?>
-                        <?php endif; ?>
-                    </td>
-                    <td><?= htmlspecialchars(CONTAINERS[$cmd['container']] ?? $cmd['container']) ?></td>
-                    <td><?= $cmd['slot'] < 0 ? '—' : (int) $cmd['slot'] ?></td>
-                    <td>
-                        <span class="tag <?= $statusClass ?>"><?= htmlspecialchars($statusLabel) ?></span>
-                        <?php if (!empty($cmd['message'])): ?><div class="rank-meta"><?= htmlspecialchars((string) $cmd['message']) ?></div><?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </section>
 
-    <section class="panel admin-block">
-        <div class="panel-head"><h3>Lịch sử thao tác</h3><small>20 hoạt động gần nhất</small></div>
-        <table class="admin-table">
-            <thead><tr><th>Thời gian</th><th>Admin</th><th>Hành động</th><th>Nhân vật</th><th>Vật phẩm</th><th>Túi</th><th>Lý do</th></tr></thead>
-            <tbody>
-            <?php if (!$recallLogs): ?><tr><td colspan="7" class="empty">Chưa có hoạt động nào.</td></tr><?php endif; ?>
-            <?php foreach ($recallLogs as $log): ?>
-                <tr>
-                    <td><?= htmlspecialchars((string) $log['created_at']) ?></td>
-                    <td><?= htmlspecialchars((string) $log['admin_username']) ?></td>
-                    <td><?= ($log['action'] ?? 'recall') === 'give_pet' ? 'Cấp đệ tử' : (($log['action'] ?? 'recall') === 'give' ? 'Cấp đồ' : 'Thu hồi') ?></td>
-                    <td><?= htmlspecialchars((string) $log['player_name']) ?></td>
-                    <td>
-                        <?= htmlspecialchars((string) $log['item_name']) ?> x<?= (int) $log['quantity'] ?>
-                        <?php if (!empty($log['options'])): ?><div class="rank-meta"><?= htmlspecialchars((string) $log['options']) ?></div><?php endif; ?>
-                    </td>
-                    <td><?= htmlspecialchars(CONTAINERS[$log['container']] ?? $log['container']) ?></td>
-                    <td><?= htmlspecialchars((string) ($log['reason'] ?? '')) ?></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </section>
-</div></main>
-<footer><div class="shell">Ngọc Rồng Online · Khu vực quản trị.</div></footer>
-<?php $hasPending = (bool) array_filter($commands, fn($cmd) => $cmd['status'] === 'pending'); ?>
-<?php if ($hasPending): ?><script>setTimeout(() => location.replace(location.href.split('#')[0]), 10000);</script><?php endif; ?>
-</body></html>
+                <!-- THANH SUB-TABS TÚI ĐỒ & CHỈ SỐ -->
+                <div class="sub-tabs">
+                    <a class="sub-tab-link <?= $currentBag === 'overview' ? 'active' : '' ?>" href="admin.php?tab=inventory&player=<?= (int) $detail['id'] ?>&bag=overview">
+                        ⚡ Bảng Chỉ Số Nhân Vật
+                    </a>
+                    <?php foreach (CONTAINERS as $column => $label): ?>
+                        <a class="sub-tab-link <?= $currentBag === $column ? 'active' : '' ?>" href="admin.php?tab=inventory&player=<?= (int) $detail['id'] ?>&bag=<?= $column ?>">
+                            📦 <?= htmlspecialchars($label) ?>
+                            <span style="font-size: 12px; opacity: 0.85; margin-left: 3px;">(<?= $bagCounts[$column] ?>)</span>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+
+                <?php if ($online): ?>
+                    <div class="notice">
+                        <span>ℹ️</span> Nhân vật <strong><?= htmlspecialchars((string) $detail['name']) ?></strong> đang Online. Lệnh thu hồi sẽ được gửi trực tiếp tới máy chủ và cập nhật vào game sau vài giây!
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($currentBag === 'overview'): ?>
+                    <!-- TAB CON: CHỈ SỐ CƠ BẢN CỦA NHÂN VẬT -->
+                    <section class="panel admin-block">
+                        <div class="panel-head">
+                            <h3>⚡ THÔNG TIN CHỈ SỐ CHI TIẾT: <?= htmlspecialchars((string) $detail['name']) ?></h3>
+                            <small>Tài khoản: <?= htmlspecialchars((string) ($detail['username'] ?? '—')) ?> · <?= $online ? '🟢 Đang Online' : '⚪ Offline' ?></small>
+                        </div>
+                        <div class="stat-grid">
+                            <?php foreach (POINT_LABELS as $index => $label): ?>
+                                <div class="stat">
+                                    <span><?= htmlspecialchars($label) ?></span>
+                                    <strong><?= formatNumber($point[$index] ?? 0) ?></strong>
+                                </div>
+                            <?php endforeach; ?>
+                            <div class="stat"><span>Vàng 💰</span><strong style="color: #ffd700;"><?= formatNumber($inventory[0] ?? 0) ?></strong></div>
+                            <div class="stat"><span>Ngọc Xanh 💎</span><strong style="color: #00d4ff;"><?= formatNumber($inventory[1] ?? 0) ?></strong></div>
+                            <div class="stat"><span>Hồng Ngọc 🔮</span><strong style="color: #ff3399;"><?= formatNumber($inventory[2] ?? 0) ?></strong></div>
+                            <div class="stat"><span>Cấp VIP ⭐</span><strong style="color: #ffaa00;"><?= formatNumber($detail['vip'] ?? 0) ?></strong></div>
+                            <div class="stat"><span>Tổng Nạp 💳</span><strong><?= formatNumber($detail['tongnap'] ?? 0) ?>đ</strong></div>
+                        </div>
+                    </section>
+                <?php else: ?>
+                    <!-- TAB CON: TÚI ĐỒ ĐƯỢC CHỌN -->
+                    <?php
+                    $items = parseContainer($detail[$currentBag] ?? null);
+                    $selectedLabel = CONTAINERS[$currentBag] ?? $currentBag;
+                    ?>
+                    <section class="panel admin-block">
+                        <div class="panel-head">
+                            <h3>📦 <?= htmlspecialchars($selectedLabel) ?> — <?= htmlspecialchars((string) $detail['name']) ?></h3>
+                            <small><?= count(array_filter($items)) ?> vật phẩm có sẵn</small>
+                        </div>
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 70px;">Ô Số</th>
+                                    <th>Vật Phẩm</th>
+                                    <th style="width: 90px;">Số Lượng</th>
+                                    <th>Chỉ Số & Thuộc Tính</th>
+                                    <th style="width: 320px;">Hành Động Thu Hồi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php $hasItem = false; ?>
+                            <?php foreach ($items as $slot => $item): ?>
+                                <?php if (!$item) { continue; } $hasItem = true; ?>
+                                <tr>
+                                    <td><strong style="color: var(--text-gold);">Ô #<?= (int) $slot ?></strong></td>
+                                    <td>
+                                        <strong style="color: #fff; font-size: 16px;"><?= htmlspecialchars($itemNames[$item['template_id']] ?? ('#' . $item['template_id'])) ?></strong>
+                                        <div class="rank-meta">ID: <?= (int) $item['template_id'] ?></div>
+                                    </td>
+                                    <td><strong style="color: var(--db-yellow); font-size: 16px;">x<?= (int) $item['quantity'] ?></strong></td>
+                                    <td class="opt-cell">
+                                        <?php if (!$item['options']): ?>
+                                            <span class="rank-meta">Không có chỉ số</span>
+                                        <?php else: ?>
+                                            <div class="item-options-list">
+                                                <?php foreach ($item['options'] as $option): ?>
+                                                    <div>✦ <?= renderOption($option, $optionNames) ?></div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <form method="post" onsubmit="return confirm('Bạn có chắc chắn muốn thu hồi vật phẩm này không?');">
+                                            <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                                            <input type="hidden" name="action" value="recall">
+                                            <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
+                                            <input type="hidden" name="container" value="<?= htmlspecialchars($currentBag) ?>">
+                                            <input type="hidden" name="slot" value="<?= (int) $slot ?>">
+                                            <input class="qty" type="number" name="quantity" min="1" max="<?= (int) $item['quantity'] ?>" value="<?= (int) $item['quantity'] ?>" required title="Số lượng muốn thu hồi">
+                                            <input name="reason" placeholder="Lý do thu hồi" maxlength="255">
+                                            <button class="btn danger" type="submit">Thu Hồi</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <?php if (!$hasItem): ?>
+                                <tr><td colspan="5" class="empty">Túi này hiện đang trống.</td></tr>
+                            <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </section>
+                <?php endif; ?>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <!-- ====================================================================
+             TAB 3: CẤP VẬT PHẨM & CẤP ĐỆ TỬ (GIVE)
+             ==================================================================== -->
+        <?php if ($currentTab === 'give'): ?>
+            <?php if (!$detail): ?>
+                <div class="panel empty" style="padding: 50px 20px;">
+                    <div style="font-size: 40px; margin-bottom: 12px;">🎁</div>
+                    <h3>Chưa chọn nhân vật để cấp phát đồ!</h3>
+                    <p style="color: var(--text-muted); margin-top: 6px;">Vui lòng chuyển qua tab "Quản Lý Nhân Vật" và chọn <strong>"Cấp Đồ"</strong> cho người chơi bạn muốn trao thưởng.</p>
+                    <a class="btn" href="admin.php?tab=players" style="margin-top: 18px;">👥 Mở Danh Sách Nhân Vật</a>
+                </div>
+            <?php else: ?>
+                <!-- CẤP ĐỆ TỬ -->
+                <section class="panel admin-block">
+                    <div class="panel-head">
+                        <h3>🥋 CẤP ĐỆ TỬ CHO: <?= htmlspecialchars((string) $detail['name']) ?></h3>
+                        <small>Hỗ trợ đệ tử Super & VIP</small>
+                    </div>
+                    <form class="give-form" method="post" onsubmit="return confirm('Xác nhận cấp đệ tử cho chiến binh <?= htmlspecialchars((string) $detail['name']) ?>?');">
+                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                        <input type="hidden" name="action" value="give_pet">
+                        <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
+                        <div class="field">
+                            <label for="pet-type">Loại Đệ Tử</label>
+                            <select id="pet-type" name="pet_type">
+                                <option value="0">Đệ tử thường</option>
+                                <option value="1">Mabư</option>
+                                <option value="2">Beerus (Thần Hủy Diệt)</option>
+                                <option value="3">Black Goku</option>
+                                <option value="4">Black Goku Rose (Super Saiyan Rose)</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="pet-gender">Hành Tinh Xuất Thân</label>
+                            <select id="pet-gender" name="pet_gender">
+                                <option value="0">Trái Đất 🌍</option>
+                                <option value="1">Namếc 🟢</option>
+                                <option value="2">Xayda 🔴</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="pet-reason">Lý Do Cấp</label>
+                            <input id="pet-reason" name="reason" placeholder="VD: Thưởng sự kiện, đền bù..." maxlength="255">
+                        </div>
+                        <label class="check-field">
+                            <input type="checkbox" name="replace_pet" value="1">
+                            <span>⚠️ Thay thế đệ tử hiện có (nếu nhân vật đã có đệ tử cũ thì đệ tử cũ và đồ đệ tử sẽ bị xóa để nhận đệ tử mới)</span>
+                        </label>
+                        <div>
+                            <button class="btn gold" type="submit">⚡ CẤP ĐỆ TỬ NGAY</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- CẤP VẬT PHẨM -->
+                <section class="panel admin-block">
+                    <div class="panel-head">
+                        <h3>🎁 CẤP VẬT PHẨM & TRANG BỊ CHO: <?= htmlspecialchars((string) $detail['name']) ?></h3>
+                        <small>Cấp trực tiếp vào Hành trang hoặc Rương đồ</small>
+                    </div>
+                    <form class="give-form" method="post">
+                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                        <input type="hidden" name="action" value="give">
+                        <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
+                        <div class="field">
+                            <label for="give-item">Vật Phẩm (Gõ tên hoặc nhập ID)</label>
+                            <input id="give-item" name="item_id" list="item-list" required placeholder="Nhập ID hoặc chọn tên vật phẩm">
+                            <datalist id="item-list">
+                                <?php foreach ($itemNames as $id => $name): ?>
+                                    <option value="<?= (int) $id ?>"><?= htmlspecialchars($name) ?></option>
+                                <?php endforeach; ?>
+                            </datalist>
+                        </div>
+                        <div class="field">
+                            <label for="give-quantity">Số Lượng</label>
+                            <input id="give-quantity" type="number" name="quantity" min="1" max="1000000" value="1" required>
+                        </div>
+                        <div class="field">
+                            <label for="give-container">Nơi Nhận Vật Phẩm</label>
+                            <select id="give-container" name="container">
+                                <option value="items_bag">Hành Trang (Túi Đồ Nhân Vật)</option>
+                                <option value="items_box">Rương Đồ (Rương Tại Nhà)</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="give-options">Chỉ Số / Option (Tùy Chọn)</label>
+                            <input id="give-options" name="options" placeholder="VD: 50:10, 77:15 (mã_option:giá_trị)">
+                        </div>
+                        <div class="field">
+                            <label for="give-reason">Lý Do Cấp</label>
+                            <input id="give-reason" name="reason" placeholder="VD: Quà nạp đầu, sự kiện..." maxlength="255">
+                        </div>
+                        <div>
+                            <button class="btn" type="submit">⚡ CẤP VẬT PHẨM NGAY</button>
+                        </div>
+                    </form>
+                </section>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <!-- ====================================================================
+             TAB 4: HÀNG ĐỢI LỆNH SERVER (COMMANDS)
+             ==================================================================== -->
+        <?php if ($currentTab === 'commands'): ?>
+            <section class="panel admin-block">
+                <div class="panel-head">
+                    <h3>⚡ HÀNG ĐỢI LỆNH REAL-TIME GỬI MÁY CHỦ</h3>
+                    <small>Tự động làm mới mỗi 10 giây</small>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Thời Gian</th>
+                            <th>Hành Động</th>
+                            <th>Nhân Vật</th>
+                            <th>Nội Dung</th>
+                            <th>Nơi Nhận</th>
+                            <th>Ô</th>
+                            <th>Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (!$commands): ?>
+                        <tr><td colspan="7" class="empty">Hiện tại chưa có lệnh nào trong hàng đợi.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($commands as $cmd): ?>
+                        <?php
+                        $status = (string) $cmd['status'];
+                        $statusLabel = ['pending' => '⏳ Đang chờ server', 'done' => '✓ Đã hoàn thành', 'offline' => '○ Người chơi offline', 'failed' => '✗ Thất bại'][$status] ?? $status;
+                        $statusClass = $status === 'done' ? 'on' : ($status === 'pending' ? 'off' : 'ban');
+                        ?>
+                        <tr>
+                            <td><?= htmlspecialchars((string) $cmd['created_at']) ?></td>
+                            <td>
+                                <strong style="color: #fff;">
+                                    <?= $cmd['type'] === 'give_pet' ? '🥋 Cấp đệ tử' : ($cmd['type'] === 'give_item' ? '🎁 Cấp đồ' : '🗑️ Thu hồi') ?>
+                                </strong>
+                            </td>
+                            <td><strong style="color: var(--text-gold);"><?= htmlspecialchars((string) ($cmd['player_name'] ?? ('#' . $cmd['player_id']))) ?></strong></td>
+                            <td>
+                                <?php if ($cmd['type'] === 'give_pet'): ?>
+                                    <span style="color: var(--db-yellow);"><?= htmlspecialchars(PET_TYPES[(int) $cmd['item_id']] ?? ('Loại #' . $cmd['item_id'])) ?></span>
+                                <?php else: ?>
+                                    <?= htmlspecialchars($itemNames[(int) $cmd['item_id']] ?? ('#' . $cmd['item_id'])) ?> 
+                                    <strong style="color: var(--db-yellow);">x<?= (int) $cmd['quantity'] ?></strong>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars(CONTAINERS[$cmd['container']] ?? $cmd['container']) ?></td>
+                            <td><?= $cmd['slot'] < 0 ? '—' : ('#' . (int) $cmd['slot']) ?></td>
+                            <td>
+                                <span class="tag <?= $statusClass ?>"><?= htmlspecialchars($statusLabel) ?></span>
+                                <?php if (!empty($cmd['message'])): ?>
+                                    <div class="rank-meta"><?= htmlspecialchars((string) $cmd['message']) ?></div>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </section>
+        <?php endif; ?>
+
+        <!-- ====================================================================
+             TAB 5: LỊCH SỬ THAO TÁC (LOGS)
+             ==================================================================== -->
+        <?php if ($currentTab === 'logs'): ?>
+            <section class="panel admin-block">
+                <div class="panel-head">
+                    <h3>📜 LỊCH SỬ HOẠT ĐỘNG ADMIN</h3>
+                    <small><?= count($recallLogs) ?> hoạt động gần nhất</small>
+                </div>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Thời Gian</th>
+                            <th>Admin Thực Hiện</th>
+                            <th>Thao Tác</th>
+                            <th>Chiến Binh</th>
+                            <th>Chi Tiết</th>
+                            <th>Nơi Thao Tác</th>
+                            <th>Lý Do Ghi Nhận</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (!$recallLogs): ?>
+                        <tr><td colspan="7" class="empty">Chưa có nhật ký hoạt động nào được ghi lại.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($recallLogs as $log): ?>
+                        <tr>
+                            <td><?= htmlspecialchars((string) $log['created_at']) ?></td>
+                            <td><strong style="color: #66ccff;">@<?= htmlspecialchars((string) $log['admin_username']) ?></strong></td>
+                            <td>
+                                <span class="tag <?= ($log['action'] ?? 'recall') === 'recall' ? 'ban' : 'on' ?>">
+                                    <?= ($log['action'] ?? 'recall') === 'give_pet' ? 'Cấp đệ tử' : (($log['action'] ?? 'recall') === 'give' ? 'Cấp đồ' : 'Thu hồi') ?>
+                                </span>
+                            </td>
+                            <td><strong style="color: var(--text-gold);"><?= htmlspecialchars((string) $log['player_name']) ?></strong></td>
+                            <td>
+                                <div><strong><?= htmlspecialchars((string) $log['item_name']) ?></strong> x<?= (int) $log['quantity'] ?></div>
+                                <?php if (!empty($log['options'])): ?>
+                                    <div class="rank-meta" style="color: #66ccff;">✦ <?= htmlspecialchars((string) $log['options']) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars(CONTAINERS[$log['container']] ?? $log['container']) ?></td>
+                            <td><em><?= htmlspecialchars((string) ($log['reason'] ?? '—')) ?></em></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </section>
+        <?php endif; ?>
+        </div>
+    </div>
+</main>
+<footer>
+    <div class="shell">
+        Ngọc Rồng Online · Hệ Thống Quản Trị Trung Tâm Admin.
+    </div>
+</footer>
+<?php if ($pendingCount > 0): ?>
+    <script>setTimeout(() => location.replace(location.href.split('#')[0]), 10000);</script>
+<?php endif; ?>
+</body>
+</html>
