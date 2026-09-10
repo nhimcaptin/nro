@@ -35,6 +35,20 @@ $mysqli->query('CREATE TABLE IF NOT EXISTS admin_item_log (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
+$mysqli->query('CREATE TABLE IF NOT EXISTS admin_command (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    type VARCHAR(50) NOT NULL,
+    player_id INT NOT NULL,
+    container VARCHAR(50) NOT NULL,
+    slot INT NOT NULL,
+    item_id INT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT "pending",
+    message VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX idx_status (type, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
 /** Các cột chứa vật phẩm của nhân vật, khớp với PlayerDAO.updatePlayer */
 const CONTAINERS = [
     'items_body' => 'Trang bị đang mặc',
@@ -151,8 +165,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recal
 
         if (!$target) {
             $errors[] = 'Không tìm thấy nhân vật.';
-        } elseif (isAccountOnline($target)) {
-            $errors[] = 'Nhân vật đang online. Server sẽ ghi đè dữ liệu khi lưu, hãy yêu cầu thoát game rồi thu hồi lại.';
         } else {
             $slots = json_decode((string) $target['data'], true);
             $items = parseContainer($target['data']);
@@ -160,16 +172,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recal
                 $errors[] = 'Ô đồ này đang trống hoặc không tồn tại.';
             } else {
                 $item = $items[$slot];
-                $slots[$slot] = emptySlotJson($item['create_time']);
-                $newData = json_encode($slots, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $online = isAccountOnline($target);
+                $ok = false;
 
-                $stmt = $mysqli->prepare('UPDATE player SET `' . $container . '` = ? WHERE id = ?');
-                $stmt->bind_param('si', $newData, $playerId);
-                $ok = $stmt->execute();
-                $stmt->close();
+                if ($online) {
+                    // Người chơi đang online: gửi lệnh cho server tự xoá trong bộ nhớ,
+                    // nếu sửa thẳng database thì server sẽ ghi đè khi lưu.
+                    $stmt = $mysqli->prepare('INSERT INTO admin_command (type, player_id, container, slot, item_id)
+                                              VALUES ("recall_item", ?, ?, ?, ?)');
+                    $stmt->bind_param('isii', $playerId, $container, $slot, $item['template_id']);
+                    $ok = $stmt->execute();
+                    $stmt->close();
+                } else {
+                    $slots[$slot] = emptySlotJson($item['create_time']);
+                    $newData = json_encode($slots, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                    $stmt = $mysqli->prepare('UPDATE player SET `' . $container . '` = ? WHERE id = ?');
+                    $stmt->bind_param('si', $newData, $playerId);
+                    $ok = $stmt->execute();
+                    $stmt->close();
+                }
 
                 if (!$ok) {
-                    $errors[] = 'Không cập nhật được dữ liệu nhân vật.';
+                    $errors[] = 'Không thực hiện được thao tác thu hồi.';
                 } else {
                     $itemName = $itemNames[$item['template_id']] ?? ('#' . $item['template_id']);
                     $stmt = $mysqli->prepare('INSERT INTO admin_item_log
@@ -179,7 +204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recal
                         $slot, $item['template_id'], $itemName, $item['quantity'], $reason);
                     $stmt->execute();
                     $stmt->close();
-                    $success = 'Đã thu hồi "' . $itemName . '" (x' . $item['quantity'] . ') của ' . $target['name'] . '.';
+                    $success = $online
+                        ? 'Đã gửi lệnh thu hồi "' . $itemName . '" của ' . $target['name'] . '. Người chơi đang online nên server sẽ áp dụng trong vài giây, xem kết quả ở mục "Lệnh gửi server".'
+                        : 'Đã thu hồi "' . $itemName . '" (x' . $item['quantity'] . ') của ' . $target['name'] . '.';
                 }
             }
         }
@@ -218,6 +245,14 @@ if ($playerId > 0) {
     $stmt->execute();
     $detail = $stmt->get_result()->fetch_assoc();
     $stmt->close();
+}
+
+$commands = [];
+$cmdSql = 'SELECT c.*, p.name AS player_name FROM admin_command c LEFT JOIN player p ON p.id = c.player_id'
+    . ($playerId > 0 ? ' WHERE c.player_id = ' . $playerId : '') . ' ORDER BY c.id DESC LIMIT 20';
+$rs = $mysqli->query($cmdSql);
+while ($rs && $row = $rs->fetch_assoc()) {
+    $commands[] = $row;
 }
 
 $recallLogs = [];
@@ -297,7 +332,7 @@ function renderOption(array $option, array $optionNames): string {
                 <small>Tài khoản: <?= htmlspecialchars((string) ($detail['username'] ?? '—')) ?> · <?= $online ? 'Đang online' : 'Offline' ?></small>
             </div>
             <?php if ($online): ?>
-                <div class="alert error">Nhân vật đang online — không thể thu hồi vật phẩm vì server sẽ ghi đè dữ liệu khi lưu.</div>
+                <div class="notice">Nhân vật đang online — dữ liệu hiển thị lấy từ lần lưu gần nhất của server nên có thể trễ vài phút. Lệnh thu hồi sẽ được gửi xuống server và áp dụng trực tiếp trong game sau vài giây.</div>
             <?php endif; ?>
             <div class="stat-grid">
                 <?php foreach (POINT_LABELS as $index => $label): ?>
@@ -340,7 +375,7 @@ function renderOption(array $option, array $optionNames): string {
                                     <input type="hidden" name="container" value="<?= htmlspecialchars($column) ?>">
                                     <input type="hidden" name="slot" value="<?= (int) $slot ?>">
                                     <input name="reason" placeholder="Lý do" maxlength="255">
-                                    <button class="btn danger" type="submit" <?= $online ? 'disabled' : '' ?>>Thu hồi</button>
+                                    <button class="btn danger" type="submit">Thu hồi</button>
                                 </form>
                             </td>
                         </tr>
@@ -351,6 +386,34 @@ function renderOption(array $option, array $optionNames): string {
             </section>
         <?php endforeach; ?>
     <?php endif; ?>
+
+    <section class="panel admin-block">
+        <div class="panel-head"><h3>Lệnh gửi server</h3><small>Thu hồi khi người chơi đang online · tự làm mới mỗi 10s</small></div>
+        <table class="admin-table">
+            <thead><tr><th>Thời gian</th><th>Nhân vật</th><th>Vật phẩm</th><th>Túi</th><th>Ô</th><th>Trạng thái</th></tr></thead>
+            <tbody>
+            <?php if (!$commands): ?><tr><td colspan="6" class="empty">Chưa có lệnh nào.</td></tr><?php endif; ?>
+            <?php foreach ($commands as $cmd): ?>
+                <?php
+                $status = (string) $cmd['status'];
+                $statusLabel = ['pending' => 'Đang chờ server', 'done' => 'Đã thu hồi', 'offline' => 'Người chơi đã offline', 'failed' => 'Thất bại'][$status] ?? $status;
+                $statusClass = $status === 'done' ? 'on' : ($status === 'pending' ? 'off' : 'ban');
+                ?>
+                <tr>
+                    <td><?= htmlspecialchars((string) $cmd['created_at']) ?></td>
+                    <td><?= htmlspecialchars((string) ($cmd['player_name'] ?? ('#' . $cmd['player_id']))) ?></td>
+                    <td><?= htmlspecialchars($itemNames[(int) $cmd['item_id']] ?? ('#' . $cmd['item_id'])) ?></td>
+                    <td><?= htmlspecialchars(CONTAINERS[$cmd['container']] ?? $cmd['container']) ?></td>
+                    <td><?= (int) $cmd['slot'] ?></td>
+                    <td>
+                        <span class="tag <?= $statusClass ?>"><?= htmlspecialchars($statusLabel) ?></span>
+                        <?php if (!empty($cmd['message'])): ?><div class="rank-meta"><?= htmlspecialchars((string) $cmd['message']) ?></div><?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </section>
 
     <section class="panel admin-block">
         <div class="panel-head"><h3>Lịch sử thu hồi</h3><small>20 hoạt động gần nhất</small></div>
@@ -373,4 +436,6 @@ function renderOption(array $option, array $optionNames): string {
     </section>
 </div></main>
 <footer><div class="shell">Ngọc Rồng Online · Khu vực quản trị.</div></footer>
+<?php $hasPending = (bool) array_filter($commands, fn($cmd) => $cmd['status'] === 'pending'); ?>
+<?php if ($hasPending): ?><script>setTimeout(() => location.replace(location.href.split('#')[0]), 10000);</script><?php endif; ?>
 </body></html>
