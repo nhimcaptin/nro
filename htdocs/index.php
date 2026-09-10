@@ -32,9 +32,18 @@ foreach ($rankings as &$list) {
 unset($list);
 
 $discordLinked = false;
+$isAdmin = false;
 $justRegistered = ($_GET['registered'] ?? '') === '1';
 $justLinked = ($_GET['linked'] ?? '') === '1';
 if (!empty($_SESSION['user_id'])) {
+    $stmt = $mysqli->prepare('SELECT is_admin FROM account WHERE id = ? LIMIT 1');
+    if ($stmt) {
+        $userId = (int) $_SESSION['user_id'];
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $isAdmin = (int) ($stmt->get_result()->fetch_assoc()['is_admin'] ?? 0) === 1;
+        $stmt->close();
+    }
     $column = $mysqli->query("SHOW COLUMNS FROM account LIKE 'discord_id'");
     if ($column && $column->num_rows > 0) {
         $stmt = $mysqli->prepare('SELECT discord_id FROM account WHERE id = ? LIMIT 1');
@@ -68,6 +77,7 @@ if (!empty($_SESSION['user_id'])) {
             <?php else: ?>
                 <a class="btn" href="discord-verify.php">Liên kết Discord</a>
             <?php endif; ?>
+            <?php if ($isAdmin): ?><a href="admin.php">Quản trị</a><?php endif; ?>
             <a href="change-password.php">Đổi mật khẩu</a>
             <a href="logout.php">Đăng xuất</a>
         <?php else: ?>
