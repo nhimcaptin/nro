@@ -432,6 +432,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'give_
     }
 }
 
+/* ------------------------- Khóa / Mở Khóa Tài Khoản (Ban / Unban) ------------------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_ban') {
+    if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+        $errors[] = 'Phiên làm việc không hợp lệ, hãy tải lại trang.';
+    }
+    $targetAccountId = (int) ($_POST['account_id'] ?? 0);
+    $banStatus = (int) ($_POST['ban_status'] ?? 0); // 1: Ban, 0: Unban
+    $reason = trim((string) ($_POST['reason'] ?? ''));
+
+    if ($targetAccountId <= 0) {
+        $errors[] = 'Tài khoản không hợp lệ.';
+    } elseif ($targetAccountId === (int) $_SESSION['user_id']) {
+        $errors[] = 'Không thể tự khóa tài khoản của chính mình!';
+    }
+
+    if (!$errors) {
+        $stmt = $mysqli->prepare('SELECT id, username, is_admin, ban FROM account WHERE id = ? LIMIT 1');
+        $stmt->bind_param('i', $targetAccountId);
+        $stmt->execute();
+        $targetAcc = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$targetAcc) {
+            $errors[] = 'Không tìm thấy tài khoản cần thao tác.';
+        } elseif ((int) $targetAcc['is_admin'] === 1 && $banStatus === 1) {
+            $errors[] = 'Không thể khóa tài khoản có quyền Quản Trị Viên (Admin)!';
+        } else {
+            $stmt = $mysqli->prepare('UPDATE account SET ban = ? WHERE id = ?');
+            $stmt->bind_param('ii', $banStatus, $targetAccountId);
+            if ($stmt->execute()) {
+                $actLabel = $banStatus === 1 ? 'Khóa tài khoản (Ban)' : 'Mở khóa tài khoản (Unban)';
+                writeLog($mysqli, $banStatus === 1 ? 'ban_account' : 'unban_account', 0, $targetAcc['username'], 'account', -1,
+                    $targetAccountId, 'Tài khoản: ' . $targetAcc['username'], 1, $actLabel, $reason);
+                $success = ($banStatus === 1 ? 'Đã khóa thành công' : 'Đã mở khóa thành công') . ' tài khoản: ' . htmlspecialchars($targetAcc['username']);
+            } else {
+                $errors[] = 'Có lỗi xảy ra khi cập nhật trạng thái tài khoản.';
+            }
+            $stmt->close();
+        }
+    }
+}
+
 $currentTab = $_GET['tab'] ?? ($playerId > 0 ? 'inventory' : 'players');
 $currentBag = $_GET['bag'] ?? 'overview';
 if ($currentBag !== 'overview' && !isset(CONTAINERS[$currentBag])) {
@@ -439,7 +481,7 @@ if ($currentBag !== 'overview' && !isset(CONTAINERS[$currentBag])) {
 }
 $search = trim((string) ($_GET['q'] ?? ''));
 $players = [];
-$sql = 'SELECT p.id, p.name, p.gender, p.data_point, a.username, a.ban, a.last_time_login, a.last_time_logout
+$sql = 'SELECT p.id, p.account_id, p.name, p.gender, p.data_point, a.id AS acc_id, a.username, a.ban, a.is_admin, a.last_time_login, a.last_time_logout
         FROM player p LEFT JOIN account a ON a.id = p.account_id';
 if ($search !== '') {
     $sql .= ' WHERE p.name LIKE ? OR a.username LIKE ?';
@@ -620,10 +662,24 @@ function renderOption(array $option, array $optionNames): string {
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                                    <a class="btn secondary" style="padding: 5px 10px; font-size: 12px;" href="admin.php?tab=inventory&player=<?= (int) $row['id'] ?>&bag=overview">⚡ Chỉ Số</a>
-                                    <a class="btn secondary" style="padding: 5px 10px; font-size: 12px;" href="admin.php?tab=inventory&player=<?= (int) $row['id'] ?>&bag=items_body">🎒 Túi Đồ</a>
-                                    <a class="btn" style="padding: 5px 10px; font-size: 12px;" href="admin.php?tab=give&player=<?= (int) $row['id'] ?>">🎁 Cấp Đồ</a>
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                                    <a class="btn secondary" style="padding: 4px 8px; font-size: 11px;" href="admin.php?tab=inventory&player=<?= (int) $row['id'] ?>&bag=overview">⚡ Chỉ Số</a>
+                                    <a class="btn secondary" style="padding: 4px 8px; font-size: 11px;" href="admin.php?tab=inventory&player=<?= (int) $row['id'] ?>&bag=items_body">🎒 Túi Đồ</a>
+                                    <a class="btn" style="padding: 4px 8px; font-size: 11px;" href="admin.php?tab=give&player=<?= (int) $row['id'] ?>">🎁 Cấp Đồ</a>
+                                    <?php if (!empty($row['acc_id']) && (int)$row['acc_id'] !== (int)$_SESSION['user_id'] && (int)($row['is_admin'] ?? 0) !== 1): ?>
+                                        <form method="post" style="display: inline; margin: 0;" onsubmit="return confirm('<?= (int)($row['ban'] ?? 0) === 1 ? 'Mở khóa cho tài khoản này?' : 'Bạn có chắc chắn muốn KHÓA tài khoản này?' ?>');">
+                                            <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                                            <input type="hidden" name="action" value="toggle_ban">
+                                            <input type="hidden" name="account_id" value="<?= (int) $row['acc_id'] ?>">
+                                            <input type="hidden" name="ban_status" value="<?= (int)($row['ban'] ?? 0) === 1 ? '0' : '1' ?>">
+                                            <input type="hidden" name="reason" value="Thao tác từ danh sách nhân vật">
+                                            <?php if ((int)($row['ban'] ?? 0) === 1): ?>
+                                                <button class="btn" style="padding: 4px 8px; font-size: 11px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #047857;" type="submit">🔓 Mở Khóa</button>
+                                            <?php else: ?>
+                                                <button class="btn danger" style="padding: 4px 8px; font-size: 11px;" type="submit">🔒 Khóa (Ban)</button>
+                                            <?php endif; ?>
+                                        </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -680,9 +736,25 @@ function renderOption(array $option, array $optionNames): string {
                 <?php if ($currentBag === 'overview'): ?>
                     <!-- TAB CON: CHỈ SỐ CƠ BẢN CỦA NHÂN VẬT -->
                     <section class="panel admin-block">
-                        <div class="panel-head">
-                            <h3>⚡ THÔNG TIN CHỈ SỐ CHI TIẾT: <?= htmlspecialchars((string) $detail['name']) ?></h3>
-                            <small>Tài khoản: <?= htmlspecialchars((string) ($detail['username'] ?? '—')) ?> · <?= $online ? '🟢 Đang Online' : '⚪ Offline' ?></small>
+                        <div class="panel-head" style="flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <h3>⚡ THÔNG TIN CHỈ SỐ CHI TIẾT: <?= htmlspecialchars((string) $detail['name']) ?></h3>
+                                <small style="margin-top: 4px; display: inline-block;">Tài khoản: <?= htmlspecialchars((string) ($detail['username'] ?? '—')) ?> · <?= $online ? '🟢 Đang Online' : '⚪ Offline' ?> · Trạng thái: <?= (int)($detail['ban'] ?? 0) === 1 ? '<span style="color:#ef4444; font-weight:bold;">Bị Khóa</span>' : '<span style="color:#10b981; font-weight:bold;">Bình Thường</span>' ?></small>
+                            </div>
+                            <?php if (!empty($detail['account_id']) && (int)$detail['account_id'] !== (int)$_SESSION['user_id'] && (int)($detail['is_admin'] ?? 0) !== 1): ?>
+                                <form method="post" style="display: flex; gap: 6px; align-items: center; margin: 0;" onsubmit="return confirm('<?= (int)($detail['ban'] ?? 0) === 1 ? 'Mở khóa cho tài khoản này?' : 'Bạn có chắc chắn muốn KHÓA tài khoản này?' ?>');">
+                                    <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                                    <input type="hidden" name="action" value="toggle_ban">
+                                    <input type="hidden" name="account_id" value="<?= (int) $detail['account_id'] ?>">
+                                    <input type="hidden" name="ban_status" value="<?= (int)($detail['ban'] ?? 0) === 1 ? '0' : '1' ?>">
+                                    <input class="qty" style="width: 140px; padding: 4px 8px; font-size: 11px;" type="text" name="reason" placeholder="Lý do khóa / mở..." value="">
+                                    <?php if ((int)($detail['ban'] ?? 0) === 1): ?>
+                                        <button class="btn" style="padding: 5px 12px; font-size: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #047857;" type="submit">🔓 Mở Khóa Tài Khoản</button>
+                                    <?php else: ?>
+                                        <button class="btn danger" style="padding: 5px 12px; font-size: 12px;" type="submit">🔒 Khóa Tài Khoản (Ban)</button>
+                                    <?php endif; ?>
+                                </form>
+                            <?php endif; ?>
                         </div>
                         <div class="stat-grid">
                             <?php foreach (POINT_LABELS as $index => $label): ?>
@@ -957,8 +1029,19 @@ function renderOption(array $option, array $optionNames): string {
                             <td><?= htmlspecialchars((string) $log['created_at']) ?></td>
                             <td><strong style="color: #66ccff;">@<?= htmlspecialchars((string) $log['admin_username']) ?></strong></td>
                             <td>
-                                <span class="tag <?= ($log['action'] ?? 'recall') === 'recall' ? 'ban' : 'on' ?>">
-                                    <?= ($log['action'] ?? 'recall') === 'give_pet' ? 'Cấp đệ tử' : (($log['action'] ?? 'recall') === 'give' ? 'Cấp đồ' : 'Thu hồi') ?>
+                                <?php
+                                $act = $log['action'] ?? 'recall';
+                                $badgeClass = in_array($act, ['recall', 'ban_account']) ? 'ban' : 'on';
+                                $actName = [
+                                    'recall' => 'Thu hồi đồ',
+                                    'give' => 'Cấp đồ',
+                                    'give_pet' => 'Cấp đệ tử',
+                                    'ban_account' => 'Khóa (Ban)',
+                                    'unban_account' => 'Mở khóa (Unban)',
+                                ][$act] ?? $act;
+                                ?>
+                                <span class="tag <?= $badgeClass ?>">
+                                    <?= htmlspecialchars($actName) ?>
                                 </span>
                             </td>
                             <td><strong style="color: var(--text-gold);"><?= htmlspecialchars((string) $log['player_name']) ?></strong></td>
