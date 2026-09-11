@@ -534,6 +534,9 @@ public class InventoryService {
                 if (!item.isNotNullItem()) {
                     continue;
                 }
+                if (item.itemOptions == null) {
+                    item.itemOptions = new java.util.ArrayList<>();
+                }
                 msg.writer().writeShort(item.template.id);
                 msg.writer().writeInt(item.quantity);
                 msg.writer().writeUTF(item.getInfo());
@@ -784,7 +787,10 @@ public class InventoryService {
 
         if (itemAdd.template.isUpToUp) {
             for (Item it : items) {
-                if (!it.isNotNullItem() || it.template.id != itemAdd.template.id || (!checkListsEqual(it.itemOptions, itemAdd.itemOptions) && itemAdd.template.id != 2074 && !itemAdd.isDaNangCap() && !itemAdd.isManhTS()) || it.quantity >= 100_000_000) {
+                if (!it.isNotNullItem() || it.template.id != itemAdd.template.id
+                        || (itemAdd.template.id != 457 && itemAdd.template.id != 2074 && !itemAdd.isDaNangCap() && !itemAdd.isManhTS()
+                        && !checkListsEqual(it.itemOptions, itemAdd.itemOptions))
+                        || it.quantity >= 100_000_000) {
                     continue;
                 }
 
@@ -824,6 +830,12 @@ public class InventoryService {
     }
 
     public static boolean checkListsEqual(List<ItemOption> list1, List<ItemOption> list2) {
+        if (list1 == null) {
+            list1 = new ArrayList<>();
+        }
+        if (list2 == null) {
+            list2 = new ArrayList<>();
+        }
         if (list1.size() != list2.size()) {
             return false;
         }

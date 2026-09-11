@@ -320,6 +320,8 @@ public class Zone {
                                                 default -> {
                                                     if (item.template.type >= 0 && item.template.type < 5) {
                                                         msg.writer().writeUTF("Bạn nhận được " + item.template.name);
+                                                    } else {
+                                                        msg.writer().writeUTF("");
                                                     }
                                                     if (item.template.id == 648) {
                                                         InventoryService.gI().subQuantityItemsBag(player, InventoryService.gI().findItemBag(player, 649), 1);

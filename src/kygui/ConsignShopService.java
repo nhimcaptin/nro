@@ -111,13 +111,27 @@ public class ConsignShopService {
     }
 
     private boolean SubThoiVang(Player pl, int quatity) {
+        int have = 0;
         for (Item item : pl.inventory.itemsBag) {
-            if (item.isNotNullItem() && item.template.id == 457 && item.quantity >= quatity) {
-                player.Service.InventoryService.gI().subQuantityItemsBag(pl, item, quatity);
-                return true;
+            if (item.isNotNullItem() && item.template.id == 457) {
+                have += item.quantity;
             }
         }
-        return false;
+        if (have < quatity) {
+            return false;
+        }
+        int left = quatity;
+        for (Item item : pl.inventory.itemsBag) {
+            if (left <= 0) {
+                break;
+            }
+            if (item.isNotNullItem() && item.template.id == 457 && item.quantity > 0) {
+                int take = Math.min(left, item.quantity);
+                player.Service.InventoryService.gI().subQuantityItemsBag(pl, item, take);
+                left -= take;
+            }
+        }
+        return true;
     }
 
     public void buyItem(Player pl, int id) {
@@ -308,8 +322,7 @@ public class ConsignShopService {
                     return;
                 }
                 if (it.goldSell > 0) {
-                    Item tvAdd = ItemService.gI().createNewItem((short) 457);
-                    tvAdd.quantity = it.goldSell - it.goldSell * 10 / 100;
+                    Item tvAdd = ItemService.gI().createThoiVang(it.goldSell - it.goldSell * 10 / 100);
                     InventoryService.gI().addItemBag(pl, tvAdd);
                 } else if (it.gemSell > 0) {
                     pl.inventory.gem += it.gemSell - it.gemSell * 10 / 100;

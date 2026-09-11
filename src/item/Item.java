@@ -484,6 +484,10 @@ public boolean isThucAn() {
         return strInfo;
     }
     public boolean isHaveOption(int id) {
+        if (this.itemOptions == null) {
+            this.itemOptions = new ArrayList<>();
+            return false;
+        }
         for (int i = 0; i < this.itemOptions.size(); i++) {
             ItemOption itemOption = this.itemOptions.get(i);
             if (itemOption != null && itemOption.optionTemplate.id == id) {

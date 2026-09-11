@@ -923,7 +923,7 @@ function renderOption(array $option, array $optionNames): string {
                         </div>
                         <div class="field">
                             <label for="give-options">Chỉ Số / Option (Tùy Chọn)</label>
-                            <input id="give-options" name="options" placeholder="VD: 50:10, 77:15 (mã_option:giá_trị)">
+                            <input id="give-options" name="options" placeholder="VD: 30:0 (khóa GD), 50:10, 77:15">
                         </div>
                         <div class="field">
                             <label for="give-reason">Lý Do Cấp</label>

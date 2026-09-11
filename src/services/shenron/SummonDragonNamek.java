@@ -237,23 +237,20 @@ public class SummonDragonNamek {
                                 playerSummonShenron.clan.members.forEach(m -> {
                                     if (Client.gI().getPlayer(m.id) != null) {
                                         Player p = Client.gI().getPlayer(m.id);
-                                        Item it = ItemService.gI().createNewItem((short) 457);
-                                        it.quantity = 10;
+                                        Item it = ItemService.gI().createThoiVang(10);
                                         InventoryService.gI().addItemBag(p, it);
                                         InventoryService.gI().sendItemBags(p);
                                     } else {
                                         Player p = NTTSqlFetcher.loadById(m.id);
                                         if (p != null) {
-                                            Item it = ItemService.gI().createNewItem((short) 457);
-                                            it.quantity = 10;
+                                            Item it = ItemService.gI().createThoiVang(10);
                                             InventoryService.gI().addItemBag(p, it);
                                             PlayerDAO.updatePlayer(p);
                                         }
                                     }
                                 });
                             } else {
-                                Item it = ItemService.gI().createNewItem((short) 457);
-                                it.quantity = 10;
+                                Item it = ItemService.gI().createThoiVang(10);
                                 InventoryService.gI().addItemBag(playerSummonShenron, it);
                                 InventoryService.gI().sendItemBags(playerSummonShenron);
                             }

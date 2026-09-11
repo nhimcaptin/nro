@@ -92,8 +92,7 @@ public class Input {
                     } else {
                         PlayerDAO.subvnd(player, cuantity1);
                         int soLuongItem = (cuantity1 / 1000) * 2;
-                        Item item457 = ItemService.gI().createNewItem((short) 457, 1);
-                        item457.quantity = soLuongItem;
+                        Item item457 = ItemService.gI().createThoiVang(soLuongItem);
                         InventoryService.gI().addItemBag(player, item457);
                         InventoryService.gI().sendItemBags(player);
 
@@ -265,29 +264,42 @@ public class Input {
                     break;
                 case BANSLL:
                     int sltv = Math.abs(Integer.parseInt(text[0]));
-                    long cost = (long) sltv * 500000000;
-                    Item ThoiVang = InventoryService.gI().findItemBag(player, 457);
-                    if (ThoiVang != null) {
-                        if (ThoiVang.quantity < sltv) {
-                            Service.gI().sendThongBao(player, "Bạn chỉ có " + ThoiVang.quantity + " Thỏi vàng");
+                    long cost = (long) sltv * 500000000L;
+                    int have = 0;
+                    for (Item it : player.inventory.itemsBag) {
+                        if (it != null && it.isNotNullItem() && it.template.id == 457) {
+                            have += it.quantity;
+                        }
+                    }
+                    if (have <= 0) {
+                        Service.gI().sendThongBao(player, "Bạn không có Thỏi vàng");
+                    } else if (have < sltv) {
+                        Service.gI().sendThongBao(player, "Bạn chỉ có " + have + " Thỏi vàng");
+                    } else if (player.inventory.gold + cost > Inventory.LIMIT_GOLD) {
+                        int slban = (int) ((Inventory.LIMIT_GOLD - player.inventory.gold) / 500000000L);
+                        if (slban < 1) {
+                            Service.gI().sendThongBao(player, "Vàng sau khi bán vượt quá giới hạn");
+                        } else if (slban < 2) {
+                            Service.gI().sendThongBao(player, "Bạn chỉ có thể bán 1 Thỏi vàng");
                         } else {
-                            if (player.inventory.gold + cost > Inventory.LIMIT_GOLD) {
-                                int slban = (int) ((Inventory.LIMIT_GOLD - player.inventory.gold) / 500000000);
-                                if (slban < 1) {
-                                    Service.gI().sendThongBao(player, "Vàng sau khi bán vượt quá giới hạn");
-                                } else if (slban < 2) {
-                                    Service.gI().sendThongBao(player, "Bạn chỉ có thể bán 1 Thỏi vàng");
-                                } else {
-                                    Service.gI().sendThongBao(player, "Số lượng trong khoảng 1 tới " + slban);
-                                }
-                            } else {
-                                InventoryService.gI().subQuantityItemsBag(player, ThoiVang, sltv);
-                                InventoryService.gI().sendItemBags(player);
-                                player.inventory.gold += cost;
-                                Service.gI().sendMoney(player);
-                                Service.gI().sendThongBao(player, "Đã bán " + sltv + " Thỏi vàng thu được " + Util.numberToMoney(cost) + " vàng");
+                            Service.gI().sendThongBao(player, "Số lượng trong khoảng 1 tới " + slban);
+                        }
+                    } else {
+                        int left = sltv;
+                        for (Item it : player.inventory.itemsBag) {
+                            if (left <= 0) {
+                                break;
+                            }
+                            if (it != null && it.isNotNullItem() && it.template.id == 457 && it.quantity > 0) {
+                                int take = Math.min(left, it.quantity);
+                                InventoryService.gI().subQuantityItemsBag(player, it, take);
+                                left -= take;
                             }
                         }
+                        InventoryService.gI().sendItemBags(player);
+                        player.inventory.gold += cost;
+                        Service.gI().sendMoney(player);
+                        Service.gI().sendThongBao(player, "Đã bán " + sltv + " Thỏi vàng thu được " + Util.numberToMoney(cost) + " vàng");
                     }
                     break;
                 case TANG_NGOC_HONG:

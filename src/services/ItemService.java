@@ -104,6 +104,19 @@ public class ItemService {
         return item;
     }
 
+    /** Tạo thỏi vàng (457). Có thể khóa (option 30) hoặc không — đều bán được. */
+    public Item createThoiVang(int quantity) {
+        return createNewItem((short) 457, Math.max(1, quantity));
+    }
+
+    public Item createThoiVang(int quantity, boolean locked) {
+        Item item = createThoiVang(quantity);
+        if (locked) {
+            item.itemOptions.add(new Item.ItemOption(30, 0));
+        }
+        return item;
+    }
+
     public Item otpts(short tempId, int quantity) {
         Item item = new Item();
         item.template = getTemplate(tempId);
@@ -147,7 +160,14 @@ public class ItemService {
 
     public Item createItemFromItemMap(ItemMap itemMap) {
         Item item = createNewItem(itemMap.itemTemplate.id, itemMap.quantity);
-        item.itemOptions = itemMap.options;
+        // Copy options sang list mới — không dùng chung reference với ItemMap,
+        // vì ItemMap.dispose() sẽ set options = null và làm hỏng item trong túi.
+        item.itemOptions = new ArrayList<>();
+        if (itemMap.options != null) {
+            for (Item.ItemOption io : itemMap.options) {
+                item.itemOptions.add(new Item.ItemOption(io));
+            }
+        }
         return item;
     }
 
