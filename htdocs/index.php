@@ -18,11 +18,28 @@ if ($result) {
         $power = isset($point[1]) ? (int) $point[1] : 0;
         $entry = ['name' => $row['name'], 'power' => $power, 'gender' => (int) $row['gender']];
         $rankings['master'][] = $entry;
-        $pet = json_decode($row['pet'], true);
-        if (is_array($pet) && isset($pet[0][2])) {
-            $petPoint = isset($pet[1]) && is_array($pet[1]) ? $pet[1] : [];
-            $rankings['pet'][] = ['name' => (string) $pet[0][2], 'power' => isset($petPoint[1]) ? (int) $petPoint[1] : 0, 'gender' => -1];
+
+        // Cột pet lưu dạng: ["[type,gender,name,...]", "[limit,power,tiemNang,...]", body, skills]
+        // Mỗi phần tử là chuỗi JSON lồng nhau, phải decode thêm một lần.
+        $petRaw = json_decode((string) $row['pet'], true);
+        if (!is_array($petRaw) || count($petRaw) < 2) {
+            continue;
         }
+        $petInfo = is_string($petRaw[0] ?? null) ? json_decode($petRaw[0], true) : ($petRaw[0] ?? null);
+        $petPoint = is_string($petRaw[1] ?? null) ? json_decode($petRaw[1], true) : ($petRaw[1] ?? null);
+        if (!is_array($petInfo) || !isset($petInfo[2]) || !is_array($petPoint)) {
+            continue;
+        }
+        $petName = ltrim((string) $petInfo[2], '$');
+        if ($petName === '') {
+            $petName = 'Đệ tử';
+        }
+        $rankings['pet'][] = [
+            'name' => $petName,
+            'owner' => (string) $row['name'],
+            'power' => (int) ($petPoint[1] ?? 0),
+            'gender' => (int) ($petInfo[1] ?? -1),
+        ];
     }
 }
 foreach ($rankings as &$list) {
@@ -187,7 +204,7 @@ if (!empty($_SESSION['user_id'])) {
                                 <img src="assets/images/77.png" alt="Pet" style="width: 28px; height: 28px; object-fit: contain;">
                                 <div>
                                     <div class="rank-name"><?= htmlspecialchars($pet['name']) ?></div>
-                                    <div class="rank-meta" style="color: #a78bfa;">✦ Đệ tử chân truyền</div>
+                                    <div class="rank-meta" style="color: #a78bfa;">✦ Đệ của <?= htmlspecialchars($pet['owner']) ?></div>
                                 </div>
                             </div>
                             <div class="power">⚡ <?= formatPower($pet['power']) ?></div>
