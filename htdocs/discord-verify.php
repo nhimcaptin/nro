@@ -161,7 +161,7 @@ if (!$alreadyLinked && $error === '') {
             $stmt->execute();
             $stmt->close();
 
-            $stmt = dbStmt($mysqli, 'UPDATE account SET discord_id = ? WHERE id = ?');
+            $stmt = dbStmt($mysqli, 'UPDATE account SET discord_id = ?, active = 1 WHERE id = ?');
             $stmt->bind_param('si', $discordUserId, $accountId);
             $stmt->execute();
             $stmt->close();
