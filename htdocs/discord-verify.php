@@ -99,10 +99,10 @@ try {
     $error = $exception->getMessage();
 }
 
-$discordClientId = defined('DISCORD_CLIENT_ID') ? DISCORD_CLIENT_ID : '';
-$discordClientSecret = defined('DISCORD_CLIENT_SECRET') ? DISCORD_CLIENT_SECRET : '';
-$discordRedirectUri = defined('DISCORD_REDIRECT_URI') ? DISCORD_REDIRECT_URI : '';
-$discordGuildId = defined('DISCORD_GUILD_ID') ? DISCORD_GUILD_ID : '';
+$discordClientId = $discordClientId ?? '';
+$discordClientSecret = $discordClientSecret ?? '';
+$discordRedirectUri = $discordRedirectUri ?? '';
+$discordGuildId = $discordGuildId ?? '';
 
 if (!$alreadyLinked && $error === '') {
     if (isset($_GET['code'])) {
