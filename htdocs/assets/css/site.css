@@ -941,7 +941,50 @@ main {
 .check-field input {
     width: 18px;
     height: 18px;
+    flex: 0 0 18px;
     accent-color: var(--nro-primary);
+}
+
+.replace-pet-box {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 14px 16px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.55);
+    color: #fecaca;
+}
+
+.replace-pet-box strong {
+    color: #f87171;
+    font-size: 14px;
+}
+
+.replace-pet-box span {
+    font-weight: 600;
+    color: #fed7aa;
+}
+
+.replace-pet-confirm {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(13, 17, 23, 0.55);
+    border: 1px dashed rgba(255, 190, 11, 0.55);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: #ffbe0b;
+}
+
+.replace-pet-confirm input {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+}
+
+.give-form-actions {
+    grid-column: 1 / -1;
 }
 
 .item-options-list {

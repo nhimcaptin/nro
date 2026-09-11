@@ -399,7 +399,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'give_
         if (!$target) {
             $errors[] = 'Không tìm thấy nhân vật.';
         } elseif (!$replace && !empty(json_decode((string) $target['pet'], true))) {
-            $errors[] = 'Nhân vật đã có đệ tử. Hãy chọn xác nhận thay thế nếu muốn cấp đệ tử mới.';
+            $errors[] = 'Nhân vật đã có đệ tử. Hãy tick ô "Xác nhận thay thế đệ tử hiện có" rồi bấm cấp lại.';
         } else {
             $stmt = $mysqli->prepare("SELECT id FROM admin_command
                 WHERE type = 'give_pet' AND player_id = ? AND status = 'pending' LIMIT 1");
@@ -475,6 +475,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
 }
 
 $currentTab = $_GET['tab'] ?? ($playerId > 0 ? 'inventory' : 'players');
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postAction = (string) ($_POST['action'] ?? '');
+    if ($postAction === 'give_pet' || $postAction === 'give') {
+        $currentTab = 'give';
+    } elseif ($postAction === 'recall') {
+        $currentTab = 'inventory';
+    }
+}
 $currentBag = $_GET['bag'] ?? 'overview';
 if ($currentBag !== 'overview' && !isset(CONTAINERS[$currentBag])) {
     $currentBag = 'overview';
@@ -850,12 +858,19 @@ function renderOption(array $option, array $optionNames): string {
                 </div>
             <?php else: ?>
                 <!-- CẤP ĐỆ TỬ -->
+                <?php
+                $petData = json_decode((string) ($detail['pet'] ?? ''), true);
+                $hasPet = is_array($petData) && $petData !== [];
+                $petConfirm = $hasPet
+                    ? 'Nhân vật đã có đệ tử. Đệ cũ và đồ đệ sẽ BỊ XÓA. Xác nhận thay thế?'
+                    : 'Xác nhận cấp đệ tử cho chiến binh ' . (string) $detail['name'] . '?';
+                ?>
                 <section class="panel admin-block">
                     <div class="panel-head">
                         <h3>🥋 CẤP ĐỆ TỬ CHO: <?= htmlspecialchars((string) $detail['name']) ?></h3>
                         <small>Hỗ trợ đệ tử Super & VIP</small>
                     </div>
-                    <form class="give-form" method="post" onsubmit="return confirm('Xác nhận cấp đệ tử cho chiến binh <?= htmlspecialchars((string) $detail['name']) ?>?');">
+                    <form class="give-form" method="post" action="admin.php?tab=give&player=<?= (int) $detail['id'] ?>" onsubmit="return confirm(<?= json_encode($petConfirm, JSON_UNESCAPED_UNICODE) ?>);">
                         <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
                         <input type="hidden" name="action" value="give_pet">
                         <input type="hidden" name="player_id" value="<?= (int) $detail['id'] ?>">
@@ -881,12 +896,18 @@ function renderOption(array $option, array $optionNames): string {
                             <label for="pet-reason">Lý Do Cấp</label>
                             <input id="pet-reason" name="reason" placeholder="VD: Thưởng sự kiện, đền bù..." maxlength="255">
                         </div>
-                        <label class="check-field">
-                            <input type="checkbox" name="replace_pet" value="1">
-                            <span>⚠️ Thay thế đệ tử hiện có (nếu nhân vật đã có đệ tử cũ thì đệ tử cũ và đồ đệ tử sẽ bị xóa để nhận đệ tử mới)</span>
-                        </label>
-                        <div>
-                            <button class="btn gold" type="submit">⚡ CẤP ĐỆ TỬ NGAY</button>
+                        <?php if ($hasPet): ?>
+                            <div class="check-field replace-pet-box">
+                                <strong>Nhân vật này đã có đệ tử.</strong>
+                                <span>Muốn cấp đệ mới thì phải xác nhận thay thế. Đệ cũ và toàn bộ đồ đệ sẽ bị xóa.</span>
+                                <label class="replace-pet-confirm">
+                                    <input type="checkbox" name="replace_pet" value="1" required>
+                                    <span>Xác nhận thay thế đệ tử hiện có</span>
+                                </label>
+                            </div>
+                        <?php endif; ?>
+                        <div class="give-form-actions">
+                            <button class="btn gold" type="submit"><?= $hasPet ? '⚡ THAY THẾ ĐỆ TỬ' : '⚡ CẤP ĐỆ TỬ NGAY' ?></button>
                         </div>
                     </form>
                 </section>
