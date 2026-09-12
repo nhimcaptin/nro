@@ -94,8 +94,8 @@ public class QuyLaoKame extends Npc {
                         menu.add("Về khu\nvực bang");
                         if (player.clan.isLeader(player)) {
                             menu.add("Giải tán\nBang hội");
-                            menu.add("Kho báu\ndưới biển");
                         }
+                        menu.add("Kho báu\ndưới biển");
                     }
                     this.createOtherMenu(player, 0, "Chào con, ta rất vui khi gặp con\nCon muốn làm gì nào ?", menu.toArray(new String[0]));
                 } 
@@ -177,13 +177,13 @@ public class QuyLaoKame extends Npc {
                     case 3:
                         if (player.clan != null && player.clan.isLeader(player)) {
                             createOtherMenu(player, 4, "Con có chắc muốn giải tán bang hội không?", "Đồng ý", "Từ chối");
+                        } else {
+                            openKhoBauMenu(player);
                         }
                         break;
                     case 4:
-                        if (player.clan != null && player.clan.BanDoKhoBau != null) {
-                            this.createOtherMenu(player, ConstNpc.MENU_OPENED_DBKB, "Bang hội con đang ở hang kho báu cấp " + player.clan.BanDoKhoBau.level + "\ncon có muốn đi cùng họ không?", "Top\nBang hội", "Thành tích\nBang", "Đồng ý", "Từ chối");
-                        } else {
-                            this.createOtherMenu(player, ConstNpc.MENU_OPEN_DBKB, "Đây là bản đồ kho báu hải tặc tí hon\nCác con cứ yên tâm lên đường\nỞ đây có ta lo\nNhớ chọn cấp độ vừa sức mình nhé", "Top\nBang hội", "Thành tích\nBang", "Chọn\ncấp độ", "Từ chối");
+                        if (player.clan != null && player.clan.isLeader(player)) {
+                            openKhoBauMenu(player);
                         }
                         break;
                 }
@@ -224,6 +224,22 @@ public class QuyLaoKame extends Npc {
                     TreasureUnderSeaService.gI().openBanDoKhoBau(player, Byte.parseByte(String.valueOf(PLAYERID_OBJECT.get(player.id))));
                 }
                 break;
+        }
+    }
+
+    private void openKhoBauMenu(Player player) {
+        if (player.clan == null) {
+            Service.gI().sendThongBao(player, "Hãy vào bang hội trước");
+            return;
+        }
+        if (player.clan.BanDoKhoBau != null) {
+            this.createOtherMenu(player, ConstNpc.MENU_OPENED_DBKB,
+                    "Bang hội con đang ở hang kho báu cấp " + player.clan.BanDoKhoBau.level + "\ncon có muốn đi cùng họ không?",
+                    "Top\nBang hội", "Thành tích\nBang", "Đồng ý", "Từ chối");
+        } else {
+            this.createOtherMenu(player, ConstNpc.MENU_OPEN_DBKB,
+                    "Đây là bản đồ kho báu hải tặc tí hon\nCác con cứ yên tâm lên đường\nỞ đây có ta lo\nNhớ chọn cấp độ vừa sức mình nhé",
+                    "Top\nBang hội", "Thành tích\nBang", "Chọn\ncấp độ", "Từ chối");
         }
     }
 }
