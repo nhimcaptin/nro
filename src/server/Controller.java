@@ -43,6 +43,7 @@ import network.inetwork.IMessageHandler;
 import network.Message;
 import network.inetwork.ISession;
 import Deputyhead.Service.BlackBallWarService;
+import Deputyhead.Service.TreasureUnderSeaService;
 import matches.The23rdMartialArtCongress.SuperRankService;
 import Deputyhead.Service.TrainingService;
 import map.Service.MapService;
@@ -169,7 +170,7 @@ public class Controller implements IMessageHandler {
                             player.idMark.setGotoFuture(false);
                         } else if (player.type == 1 && player.maxTime == 5) {
                             if (player.idMark != null && player.idMark.isGoToBDKB()) {
-                                ChangeMapService.gI().changeMap(player, MapService.gI().getMapCanJoin(player, 135, -1), 35, 35);
+                                TreasureUnderSeaService.gI().joinBanDoKhoBau(player);
                                 player.idMark.setGoToBDKB(false);
                             }
                         } else if (player.type == 2 && player.maxTime == 5) {
