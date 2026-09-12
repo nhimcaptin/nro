@@ -199,7 +199,11 @@ public class Mob {
             if (checkLevel < 0) {
                 checkLevel = Math.abs(levelMob - levelPlayer);
             } else {
-                tiemNang /= (int) (checkLevel * 0.5) + 1.25;
+                if(levelMob >= levelPlayer)
+                    tiemNang /= (int) (checkLevel * 0.5) + 1.25;
+                }else{
+                    tiemNang *= (int) (checkLevel * 0.5) + 1;
+                }
             }
         }
         //  else {

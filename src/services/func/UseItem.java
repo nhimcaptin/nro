@@ -718,6 +718,10 @@ public class UseItem {
                             case 1171:
                                 UseItem.gI().ChuLunBox(pl, item);
                                 break;
+                            case 1440:
+                            case 1453:
+                                UseItem.gI().openRuongSaoPhaLe(pl, item);
+                                break;
                             case 1560:
                                 if (InventoryService.gI().findItem(pl.inventory.itemsBag, 1561) != null) {
                                     UseItem.gI().RuongNgocRong(pl, item);
@@ -2087,6 +2091,28 @@ public class UseItem {
         } else {
             Service.gI().sendThongBao(pl, "Hàng trang đã đầy");
         }
+    }
+
+    public void openRuongSaoPhaLe(Player pl, Item item) {
+        if (InventoryService.gI().getCountEmptyBag(pl) <= 0) {
+            Service.gI().sendThongBao(pl, "Hành trang đã đầy");
+            return;
+        }
+        boolean vip = item.template.id == 1453;
+        int rand = Util.nextInt(0, 6);
+        short id = (short) (vip ? (1416 + rand) : (441 + rand));
+        int quantity = vip ? Util.nextInt(2, 5) : Util.nextInt(5, 15);
+        Item spl = ItemService.gI().createNewItem(id, quantity);
+        int optionId = 95 + rand;
+        int param = (rand == 3 || rand == 4) ? 3 : 5;
+        if (vip) {
+            param = 5;
+        }
+        spl.itemOptions.add(new Item.ItemOption(optionId, param));
+        InventoryService.gI().addItemBag(pl, spl);
+        InventoryService.gI().subQuantityItemsBag(pl, item, 1);
+        InventoryService.gI().sendItemBags(pl);
+        Service.gI().sendThongBao(pl, "Bạn nhận được " + spl.quantity + " " + spl.template.name);
     }
 
 }
