@@ -800,11 +800,23 @@ public class Service {
     public void attackMob(Player pl, int mobId, boolean isMobMe, int masterId) {
         if (pl != null && pl.zone != null) {
             if (!isMobMe) {
-                for (Mob mob : pl.zone.mobs) {
-                    if (mob.id == mobId) {
-                        SkillService.gI().useSkill(pl, null, mob, -1, null);
-                        break;
+                Mob target = null;
+                if (mobId >= 0 && mobId < pl.zone.mobs.size()) {
+                    Mob byIndex = pl.zone.mobs.get(mobId);
+                    if (byIndex != null && byIndex.id == mobId) {
+                        target = byIndex;
                     }
+                }
+                if (target == null) {
+                    for (Mob mob : pl.zone.mobs) {
+                        if (mob.id == mobId) {
+                            target = mob;
+                            break;
+                        }
+                    }
+                }
+                if (target != null && !target.isDie()) {
+                    SkillService.gI().useSkill(pl, null, target, -1, null);
                 }
             } else {
                 Player plAtt = pl.zone.getPlayerInMap(masterId);

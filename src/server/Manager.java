@@ -684,19 +684,58 @@ public final class Manager {
                     }
                     dataArray.clear();
                     dataArray = (JSONArray) JSONValue.parse(rs.getString("mobs").replaceAll("\\\"", ""));
-                    mapTemplate.mobTemp = new byte[dataArray.size()];
-                    mapTemplate.mobLevel = new byte[dataArray.size()];
-                    mapTemplate.mobHp = new int[dataArray.size()];
-                    mapTemplate.mobX = new short[dataArray.size()];
-                    mapTemplate.mobY = new short[dataArray.size()];
+                    java.util.List<Byte> mobTemps = new java.util.ArrayList<>();
+                    java.util.List<Byte> mobLevels = new java.util.ArrayList<>();
+                    java.util.List<Integer> mobHps = new java.util.ArrayList<>();
+                    java.util.List<Short> mobXs = new java.util.ArrayList<>();
+                    java.util.List<Short> mobYs = new java.util.ArrayList<>();
                     for (int j = 0; j < dataArray.size(); j++) {
-                        JSONArray dtm = (JSONArray) JSONValue.parse(String.valueOf(dataArray.get(j)));
-                        mapTemplate.mobTemp[j] = Byte.parseByte(String.valueOf(dtm.get(0)));
-                        mapTemplate.mobLevel[j] = Byte.parseByte(String.valueOf(dtm.get(1)));
-                        mapTemplate.mobHp[j] = Integer.parseInt(String.valueOf(dtm.get(2)));
-                        mapTemplate.mobX[j] = Short.parseShort(String.valueOf(dtm.get(3)));
-                        mapTemplate.mobY[j] = Short.parseShort(String.valueOf(dtm.get(4)));
+                        String raw = String.valueOf(dataArray.get(j)).trim();
+                        // Data lỗi kiểu "[a,...],\n[b,...]" → tách từng mảng
+                        if (raw.matches("(?s).*\\]\\s*,\\s*\\[.*")) {
+                            String[] parts = raw.split("\\]\\s*,\\s*\\[");
+                            for (String part : parts) {
+                                String fixed = part.trim();
+                                if (!fixed.startsWith("[")) {
+                                    fixed = "[" + fixed;
+                                }
+                                if (!fixed.endsWith("]")) {
+                                    fixed = fixed + "]";
+                                }
+                                JSONArray one = (JSONArray) JSONValue.parse(fixed);
+                                if (one != null && one.size() >= 5) {
+                                    mobTemps.add(Byte.parseByte(String.valueOf(one.get(0))));
+                                    mobLevels.add(Byte.parseByte(String.valueOf(one.get(1))));
+                                    mobHps.add(Integer.parseInt(String.valueOf(one.get(2))));
+                                    mobXs.add(Short.parseShort(String.valueOf(one.get(3))));
+                                    mobYs.add(Short.parseShort(String.valueOf(one.get(4))));
+                                    one.clear();
+                                }
+                            }
+                            continue;
+                        }
+                        JSONArray dtm = (JSONArray) JSONValue.parse(raw);
+                        if (dtm == null || dtm.size() < 5) {
+                            continue;
+                        }
+                        mobTemps.add(Byte.parseByte(String.valueOf(dtm.get(0))));
+                        mobLevels.add(Byte.parseByte(String.valueOf(dtm.get(1))));
+                        mobHps.add(Integer.parseInt(String.valueOf(dtm.get(2))));
+                        mobXs.add(Short.parseShort(String.valueOf(dtm.get(3))));
+                        mobYs.add(Short.parseShort(String.valueOf(dtm.get(4))));
                         dtm.clear();
+                    }
+                    mapTemplate.mobTemp = new byte[mobTemps.size()];
+                    mapTemplate.mobLevel = new byte[mobLevels.size()];
+                    mapTemplate.mobHp = new int[mobHps.size()];
+                    mapTemplate.mobX = new short[mobXs.size()];
+                    mapTemplate.mobY = new short[mobYs.size()];
+                    for (int j = 0; j < mobTemps.size(); j++) {
+                        mapTemplate.mobTemp[j] = mobTemps.get(j);
+                        mapTemplate.mobLevel[j] = mobLevels.get(j);
+                        mapTemplate.mobHp[j] = mobHps.get(j);
+                        mapTemplate.mobX[j] = mobXs.get(j);
+                        mapTemplate.mobY[j] = mobYs.get(j);
                     }
                     dataArray.clear();
                     dataArray = (JSONArray) JSONValue.parse(rs.getString("npcs").replaceAll("\\\"", ""));

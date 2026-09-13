@@ -586,15 +586,9 @@ public class Zone {
             }
 
             try {
-                List<Mob> mobs = new ArrayList<>();
+                // Phải gửi đủ theo đúng thứ tự id (0..n). Bỏ sót mob chết làm lệch id client → đánh không ra action.
+                msg.writer().writeByte(this.mobs.size());
                 for (Mob mob : this.mobs) {
-                    if (mob.isBigBoss() && mob.tempId != 70 && mob.isDie()) {
-                        continue;
-                    }
-                    mobs.add(mob);
-                }
-                msg.writer().writeByte(mobs.size());
-                for (Mob mob : mobs) {
                     msg.writer().writeBoolean(false); //is disable
                     msg.writer().writeBoolean(false); //is dont move
                     msg.writer().writeBoolean(false); //is fire
@@ -602,14 +596,14 @@ public class Zone {
                     msg.writer().writeBoolean(false); //is wind
                     msg.writer().writeByte(mob.tempId);
                     msg.writer().writeByte(0); // sys
-                    msg.writer().writeInt(mob.point.gethp());
+                    msg.writer().writeInt(Math.max(mob.point.gethp(), 0));
                     msg.writer().writeByte(mob.level);
                     msg.writer().writeInt((mob.point.getHpFull()));
                     msg.writer().writeShort(mob.location.x);
                     msg.writer().writeShort(mob.location.y);
                     msg.writer().writeByte(mob.status);
                     msg.writer().writeByte(mob.lvMob);
-                    msg.writer().writeBoolean(mob.tempId == ConstMob.GAU_TUONG_CUOP || mob.tempId >= ConstMob.VOI_CHIN_NGA && mob.tempId <= ConstMob.PIANO); //is bigboss
+                    msg.writer().writeBoolean(mob.isBigBoss());
                 }
             } catch (Exception e) {
                 msg.writer().writeByte(0);

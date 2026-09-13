@@ -426,8 +426,15 @@ public class SkillService {
                 if (player.zone != null && player.zone.map.mapId != 113 && plTarget != null && Util.getDistance(player, plTarget) > Skill.RANGE_ATTACK_CHIEU_DAM) {
                     miss = true;
                 }
-                if (mobTarget != null && Util.getDistance(player, mobTarget) > Skill.RANGE_ATTACK_CHIEU_DAM) {
-                    miss = true;
+                if (mobTarget != null) {
+                    // Phó bản nhiều tầng (BDKB...): chỉ check khoảng cách ngang, tránh miss do lệch Y nền/platform
+                    if (player.zone != null && MapService.gI().isMapPhoBan(player.zone.map.mapId)) {
+                        if (Math.abs(player.location.x - mobTarget.location.x) > Skill.RANGE_ATTACK_CHIEU_DAM + 80) {
+                            miss = true;
+                        }
+                    } else if (Util.getDistance(player, mobTarget) > Skill.RANGE_ATTACK_CHIEU_DAM) {
+                        miss = true;
+                    }
                 }
             case Skill.KAMEJOKO:
             case Skill.MASENKO:
