@@ -171,7 +171,7 @@ public class CombineService {
                 PhaLeHoaTrangBi.phaLeHoa(player);
                 break;
             case NHAP_NGOC_RONG:
-                NhapNgocRong.nhapNgocRong(player);
+                NhapNgocRong.nhapNgocRong(player, 1);
                 break;
             case NANG_CAP_VAT_PHAM:
                 NangCapVatPham.nangCapVatPham(player);
@@ -225,7 +225,7 @@ public class CombineService {
                 NangCapDeBlackGoku.nangCapDeBlackGoku(player);
                 break;
             case NANG_CAP_ITEM_CAP_2:
-                NangCapItemCap2.Itemc2(player);
+                NangCapItemCap2.Itemc2(player, 1);
                 break;
             case NANG_CAP_DE_TU_BLACK_GOKU_ROSE:
                 NangCapDeTuBlackGokuRose.NangCapDeBlackGokuRose(player);
@@ -248,6 +248,12 @@ public class CombineService {
         switch (player.combineNew.typeCombine) {
             case PHA_LE_HOA_TRANG_BI:
                 PhaLeHoaTrangBi.phaLeHoa(player, n);
+                break;
+            case NHAP_NGOC_RONG:
+                NhapNgocRong.nhapNgocRong(player, n);
+                break;
+            case NANG_CAP_ITEM_CAP_2:
+                NangCapItemCap2.Itemc2(player, n);
                 break;
         }
 

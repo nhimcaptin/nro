@@ -386,17 +386,28 @@ public class BaHatMit extends Npc {
                         }
                     } else if (player.idMark.getIndexMenu() == ConstNpc.MENU_START_COMBINE) {
                         switch (player.combineNew.typeCombine) {
-                            case CombineService.NANG_CAP_BONG_TAI, 
-                                    CombineService.NANG_CHI_SO_BONG_TAI, 
-                                    CombineService.LAM_PHEP_NHAP_DA, 
-                                    CombineService.NHAP_NGOC_RONG, 
-                                    CombineService.GIAM_DINH_SACH, 
-                                    CombineService.TAY_SACH, 
+                            case CombineService.NANG_CAP_BONG_TAI,
+                                    CombineService.NANG_CHI_SO_BONG_TAI,
+                                    CombineService.LAM_PHEP_NHAP_DA,
+                                    CombineService.GIAM_DINH_SACH,
+                                    CombineService.TAY_SACH,
                                     CombineService.NANG_CAP_SACH_TUYET_KY,
-                                    CombineService.HOI_PHUC_SACH, 
+                                    CombineService.HOI_PHUC_SACH,
                                     CombineService.PHAN_RA_SACH -> {
                                 if (select == 0) {
                                     CombineService.gI().startCombine(player);
+                                }
+                            }
+                            case CombineService.NHAP_NGOC_RONG -> {
+                                switch (select) {
+                                    case 0 ->
+                                        CombineService.gI().startCombine(player);
+                                    case 1 ->
+                                        CombineService.gI().startCombineVip(player, 10);
+                                    case 2 ->
+                                        CombineService.gI().startCombineVip(player, 100);
+                                    default -> {
+                                    }
                                 }
                             }
                             case CombineService.NANG_CAP_VAT_PHAM -> {
