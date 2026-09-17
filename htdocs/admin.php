@@ -209,6 +209,7 @@ $optionNames = loadOptionTemplates($mysqli);
 
 $errors = [];
 $success = null;
+$optionInput = '';
 $playerId = isset($_GET['player']) ? (int) $_GET['player'] : 0;
 
 /* ------------------------- Thu hồi vật phẩm ------------------------- */
@@ -942,9 +943,34 @@ function renderOption(array $option, array $optionNames): string {
                                 <option value="items_box">Rương Đồ (Rương Tại Nhà)</option>
                             </select>
                         </div>
-                        <div class="field">
-                            <label for="give-options">Chỉ Số / Option (Tùy Chọn)</label>
-                            <input id="give-options" name="options" placeholder="VD: 30:0 (khóa GD), 50:10, 77:15">
+                        <div class="field option-builder-field">
+                            <label for="option-search">Chỉ Số / Option (Tùy Chọn)</label>
+                            <p class="option-hint">Tìm theo mã hoặc tên, chọn option rồi nhập số thay vào dấu #. Xem trước bên dưới trùng với dòng chỉ số trong game.</p>
+                            <div class="option-builder" id="option-builder">
+                                <div class="option-quick">
+                                    <span>Thêm nhanh:</span>
+                                    <button type="button" class="option-chip" data-id="30" data-value="0">Khóa GD</button>
+                                    <button type="button" class="option-chip" data-id="50" data-value="15">Sức đánh %</button>
+                                    <button type="button" class="option-chip" data-id="77" data-value="15">HP %</button>
+                                    <button type="button" class="option-chip" data-id="103" data-value="15">KI %</button>
+                                    <button type="button" class="option-chip" data-id="14" data-value="10">Chí mạng</button>
+                                    <button type="button" class="option-chip" data-id="47" data-value="20">Giáp</button>
+                                    <button type="button" class="option-chip" data-id="94" data-value="10">Giảm ST</button>
+                                    <button type="button" class="option-chip" data-id="107" data-value="5">Sao pha lê</button>
+                                </div>
+                                <div class="option-search-wrap">
+                                    <input id="option-search" type="search" autocomplete="off" placeholder="Gõ mã hoặc tên option, ví dụ: 50 hoặc Sức đánh">
+                                    <div class="option-suggest" id="option-suggest" hidden></div>
+                                </div>
+                                <div class="option-rows" id="option-rows"></div>
+                                <div class="option-preview-box">
+                                    <div class="option-preview-title">Xem trước như trong game</div>
+                                    <div class="option-preview-list" id="option-preview-list">
+                                        <div class="option-preview-empty">Chưa chọn option — vật phẩm sẽ không có chỉ số.</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="give-options" name="options" value="<?= htmlspecialchars($optionInput) ?>">
+                            </div>
                         </div>
                         <div class="field">
                             <label for="give-reason">Lý Do Cấp</label>
@@ -1090,6 +1116,316 @@ function renderOption(array $option, array $optionNames): string {
 </footer>
 <?php if ($pendingCount > 0): ?>
     <script>setTimeout(() => location.replace(location.href.split('#')[0]), 10000);</script>
+<?php endif; ?>
+<?php if ($currentTab === 'give' && $detail): ?>
+<script>
+(function () {
+    const templates = <?= json_encode($optionNames, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>;
+    const searchInput = document.getElementById('option-search');
+    const suggestBox = document.getElementById('option-suggest');
+    const rowsBox = document.getElementById('option-rows');
+    const previewBox = document.getElementById('option-preview-list');
+    const hiddenInput = document.getElementById('give-options');
+    const form = hiddenInput && hiddenInput.closest('form');
+    if (!searchInput || !suggestBox || !rowsBox || !previewBox || !hiddenInput) {
+        return;
+    }
+
+    const entries = Object.keys(templates).map(function (id) {
+        return { id: Number(id), name: String(templates[id] || '') };
+    });
+    const rows = [];
+    let highlight = -1;
+
+    function needsValue(name) {
+        return String(name).indexOf('#') !== -1;
+    }
+
+    function renderName(name, value) {
+        return String(name).split('#').join(String(value));
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function parseSaved(raw) {
+        const parsed = [];
+        String(raw || '').split(/[,;\n]+/).forEach(function (part) {
+            const pair = part.trim().split(':');
+            if (pair.length === 2 && pair[0] !== '' && !isNaN(pair[0]) && !isNaN(pair[1])) {
+                parsed.push({ id: parseInt(pair[0], 10), value: parseInt(pair[1], 10) });
+            }
+        });
+        return parsed;
+    }
+
+    function syncHidden() {
+        hiddenInput.value = rows.map(function (row) {
+            return row.id + ':' + row.value;
+        }).join(',');
+    }
+
+    function renderPreview() {
+        if (!rows.length) {
+            previewBox.innerHTML = '<div class="option-preview-empty">Chưa chọn option — vật phẩm sẽ không có chỉ số.</div>';
+            return;
+        }
+        previewBox.innerHTML = rows.map(function (row) {
+            const name = templates[row.id];
+            if (name == null) {
+                return '<div class="option-preview-item is-bad">Không có chỉ số mã ' + row.id + '</div>';
+            }
+            const ok = !needsValue(name) || String(row.value).length > 0;
+            const cls = ok ? 'is-ok' : 'is-warn';
+            const text = ok ? renderName(name, row.value) : (name + ' — chưa nhập giá trị');
+            return '<div class="option-preview-item ' + cls + '"><span>✦ ' + escapeHtml(text) + '</span><small>mã ' + row.id + '</small></div>';
+        }).join('');
+    }
+
+    function renderRows() {
+        if (!rows.length) {
+            rowsBox.innerHTML = '';
+            syncHidden();
+            renderPreview();
+            return;
+        }
+        rowsBox.innerHTML = rows.map(function (row, index) {
+            const name = templates[row.id];
+            const known = name != null;
+            const showValue = !known || needsValue(name);
+            const status = known ? 'is-ok' : 'is-bad';
+            const label = known ? renderName(name, row.value) : 'Option không tồn tại';
+            return '<div class="option-row ' + status + '" data-id="' + row.id + '" data-index="' + index + '">'
+                + '<span class="option-id">#' + row.id + '</span>'
+                + '<span class="option-name">' + escapeHtml(label) + '</span>'
+                + (showValue
+                    ? '<input class="option-val" type="number" data-index="' + index + '" value="' + escapeHtml(row.value) + '" title="Số thay vào dấu #">'
+                    : '<span class="option-fixed">Không cần số</span>')
+                + '<button type="button" class="option-remove" data-index="' + index + '" aria-label="Xóa option">×</button>'
+                + '</div>';
+        }).join('');
+        syncHidden();
+        renderPreview();
+    }
+
+    function focusOptionValue(id) {
+        const row = rowsBox.querySelector('.option-row[data-id="' + id + '"]');
+        const input = row && row.querySelector('.option-val');
+        if (input) {
+            input.focus();
+            input.select();
+            return;
+        }
+        searchInput.focus();
+    }
+
+    function addOption(id, value, focus) {
+        id = Number(id);
+        if (!Number.isFinite(id)) {
+            return;
+        }
+        const exists = rows.some(function (row) { return row.id === id; });
+        if (exists) {
+            const current = rows.find(function (row) { return row.id === id; });
+            if (value !== undefined && value !== '' && current) {
+                current.value = Number(value);
+            }
+            renderRows();
+            if (focus) {
+                focusOptionValue(id);
+            }
+            return;
+        }
+        rows.push({
+            id: id,
+            value: value === undefined || value === '' ? 0 : Number(value)
+        });
+        renderRows();
+        if (focus) {
+            focusOptionValue(id);
+        }
+    }
+
+    function hideSuggest() {
+        suggestBox.hidden = true;
+        suggestBox.innerHTML = '';
+        highlight = -1;
+    }
+
+    function filterOptions(query) {
+        const q = String(query || '').trim().toLowerCase();
+        if (!q) {
+            return [];
+        }
+        const exactId = entries.filter(function (item) { return String(item.id) === q; });
+        const startsId = entries.filter(function (item) {
+            return String(item.id) !== q && String(item.id).indexOf(q) === 0;
+        });
+        const byName = entries.filter(function (item) {
+            return String(item.id) !== q && String(item.id).indexOf(q) !== 0
+                && item.name.toLowerCase().indexOf(q) !== -1;
+        });
+        return exactId.concat(startsId, byName).slice(0, 12);
+    }
+
+    function renderSuggest(items) {
+        if (!items.length) {
+            suggestBox.hidden = false;
+            suggestBox.innerHTML = '<div class="option-suggest-empty">Không tìm thấy option nào khớp.</div>';
+            highlight = -1;
+            return;
+        }
+        suggestBox.hidden = false;
+        suggestBox.innerHTML = items.map(function (item, index) {
+            return '<button type="button" class="option-suggest-item" data-id="' + item.id + '" data-index="' + index + '">'
+                + '<strong>#' + item.id + '</strong>'
+                + '<span>' + escapeHtml(item.name) + '</span>'
+                + '</button>';
+        }).join('');
+        highlight = 0;
+        paintHighlight();
+    }
+
+    function paintHighlight() {
+        Array.prototype.forEach.call(suggestBox.querySelectorAll('.option-suggest-item'), function (el, index) {
+            el.classList.toggle('is-active', index === highlight);
+        });
+    }
+
+    function chooseHighlighted() {
+        const items = suggestBox.querySelectorAll('.option-suggest-item');
+        if (!items.length || highlight < 0 || !items[highlight]) {
+            return false;
+        }
+        const id = items[highlight].getAttribute('data-id');
+        addOption(id, 0, true);
+        searchInput.value = '';
+        hideSuggest();
+        return true;
+    }
+
+    searchInput.addEventListener('input', function () {
+        const raw = searchInput.value.trim();
+        if (!raw) {
+            hideSuggest();
+            return;
+        }
+        const pasted = parseSaved(raw);
+        if (pasted.length && /[,;]/.test(raw)) {
+            pasted.forEach(function (item) { addOption(item.id, item.value); });
+            searchInput.value = '';
+            hideSuggest();
+            return;
+        }
+        const idOnly = raw.replace(/:.*$/, '');
+        renderSuggest(filterOptions(idOnly || raw));
+    });
+
+    searchInput.addEventListener('keydown', function (event) {
+        const visible = !suggestBox.hidden;
+        if (event.key === 'ArrowDown' && visible) {
+            event.preventDefault();
+            const max = suggestBox.querySelectorAll('.option-suggest-item').length - 1;
+            highlight = Math.min(max, highlight + 1);
+            paintHighlight();
+        } else if (event.key === 'ArrowUp' && visible) {
+            event.preventDefault();
+            highlight = Math.max(0, highlight - 1);
+            paintHighlight();
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            const typed = parseSaved(searchInput.value);
+            if (typed.length) {
+                typed.forEach(function (item) { addOption(item.id, item.value, true); });
+                searchInput.value = '';
+                hideSuggest();
+                return;
+            }
+            if (!chooseHighlighted()) {
+                hideSuggest();
+            }
+        } else if (event.key === 'Escape') {
+            hideSuggest();
+        }
+    });
+
+    suggestBox.addEventListener('mousedown', function (event) {
+        const item = event.target.closest('.option-suggest-item');
+        if (!item) {
+            return;
+        }
+        event.preventDefault();
+        addOption(item.getAttribute('data-id'), 0, true);
+        searchInput.value = '';
+        hideSuggest();
+    });
+
+    searchInput.addEventListener('blur', function () {
+        setTimeout(hideSuggest, 120);
+    });
+
+    rowsBox.addEventListener('input', function (event) {
+        const input = event.target.closest('.option-val');
+        if (!input) {
+            return;
+        }
+        const index = Number(input.getAttribute('data-index'));
+        if (!rows[index]) {
+            return;
+        }
+        rows[index].value = input.value === '' ? 0 : Number(input.value);
+        const nameEl = input.closest('.option-row').querySelector('.option-name');
+        const name = templates[rows[index].id];
+        if (nameEl && name != null) {
+            nameEl.textContent = renderName(name, rows[index].value);
+        }
+        syncHidden();
+        renderPreview();
+    });
+
+    rowsBox.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' && event.target.classList.contains('option-val')) {
+            event.preventDefault();
+            searchInput.focus();
+        }
+    });
+
+    rowsBox.addEventListener('click', function (event) {
+        const button = event.target.closest('.option-remove');
+        if (!button) {
+            return;
+        }
+        const index = Number(button.getAttribute('data-index'));
+        rows.splice(index, 1);
+        renderRows();
+    });
+
+    document.querySelectorAll('.option-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            addOption(chip.getAttribute('data-id'), chip.getAttribute('data-value'), true);
+        });
+    });
+
+    if (form) {
+        form.addEventListener('submit', function (event) {
+            const unknown = rows.filter(function (row) { return templates[row.id] == null; });
+            if (unknown.length) {
+                event.preventDefault();
+                alert('Có option không tồn tại: mã ' + unknown.map(function (row) { return row.id; }).join(', '));
+            }
+        });
+    }
+
+    parseSaved(hiddenInput.value).forEach(function (item) {
+        addOption(item.id, item.value);
+    });
+})();
+</script>
 <?php endif; ?>
 </body>
 </html>

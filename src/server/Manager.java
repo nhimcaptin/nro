@@ -693,8 +693,8 @@ public final class Manager {
                         String raw = String.valueOf(dataArray.get(j)).trim();
                         // Data lỗi kiểu "[a,...],\n[b,...]" → tách từng mảng
                         if (raw.matches("(?s).*\\]\\s*,\\s*\\[.*")) {
-                            String[] parts = raw.split("\\]\\s*,\\s*\\[");
-                            for (String part : parts) {
+                            String[] mobEntries = raw.split("\\]\\s*,\\s*\\[");
+                            for (String part : mobEntries) {
                                 String fixed = part.trim();
                                 if (!fixed.startsWith("[")) {
                                     fixed = "[" + fixed;

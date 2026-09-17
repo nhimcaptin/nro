@@ -994,6 +994,240 @@ main {
     overflow-y: auto;
 }
 
+.give-form .option-builder-field {
+    grid-column: 1 / -1;
+    align-self: stretch;
+}
+
+.option-hint {
+    margin: 0 0 10px;
+    color: var(--nro-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.option-builder {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option-quick {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.option-quick span {
+    color: var(--nro-text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.option-chip {
+    border: 1px solid rgba(255, 190, 11, 0.35);
+    background: rgba(255, 190, 11, 0.08);
+    color: #ffd166;
+    border-radius: var(--radius-pill);
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.option-chip:hover {
+    background: rgba(255, 190, 11, 0.18);
+    border-color: rgba(255, 190, 11, 0.7);
+    color: #fff;
+}
+
+.option-search-wrap {
+    position: relative;
+}
+
+.option-search-wrap input {
+    width: 100%;
+}
+
+.option-suggest {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 20;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #161b22;
+    border: 1px solid rgba(255, 190, 11, 0.45);
+    border-radius: var(--radius-sm);
+}
+
+.option-suggest-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    padding: 8px 12px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.option-suggest-item strong {
+    flex: 0 0 52px;
+    color: #ffbe0b;
+    font-size: 12px;
+}
+
+.option-suggest-item span {
+    color: #cbd5e1;
+    font-size: 13px;
+}
+
+.option-suggest-item:hover,
+.option-suggest-item.is-active {
+    background: rgba(255, 106, 0, 0.18);
+}
+
+.option-suggest-empty {
+    padding: 10px 12px;
+    color: #f87171;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.option-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.option-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-sm);
+    background: rgba(13, 17, 23, 0.55);
+}
+
+.option-row.is-bad {
+    border-color: rgba(248, 113, 113, 0.55);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.option-row.is-ok {
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.option-id {
+    flex: 0 0 52px;
+    color: #ffbe0b;
+    font-weight: 800;
+    font-size: 12px;
+}
+
+.option-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.option-row .option-val {
+    flex: 0 0 90px;
+    width: 90px;
+    padding: 6px 8px;
+    text-align: center;
+}
+
+.option-fixed {
+    flex: 0 0 auto;
+    color: var(--nro-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.option-remove {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border-radius: var(--radius-sm);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.option-remove:hover {
+    background: rgba(239, 68, 68, 0.28);
+    color: #fff;
+}
+
+.option-preview-box {
+    padding: 10px 12px;
+    border: 1px dashed rgba(96, 165, 250, 0.4);
+    border-radius: var(--radius-sm);
+    background: rgba(37, 99, 235, 0.08);
+}
+
+.option-preview-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #93c5fd;
+    margin-bottom: 6px;
+}
+
+.option-preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.option-preview-empty {
+    color: var(--nro-text-muted);
+    font-size: 12px;
+}
+
+.option-preview-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.option-preview-item.is-ok {
+    color: #93c5fd;
+}
+
+.option-preview-item.is-warn,
+.option-preview-item.is-bad {
+    color: #f87171;
+}
+
+.option-preview-item small {
+    color: var(--nro-text-muted);
+    font-weight: 700;
+}
+
 /* ====================================================================
    FOOTER (GAMING BRANDING)
    ==================================================================== */
@@ -1020,4 +1254,6 @@ footer a {
     .nav-links { width: 100%; }
     .admin-header-bar { flex-direction: column; align-items: flex-start; }
     .admin-table { font-size: 12px; }
+    .option-row { flex-wrap: wrap; }
+    .option-name { flex: 1 1 100%; }
 }
