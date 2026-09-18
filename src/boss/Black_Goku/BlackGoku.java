@@ -32,11 +32,9 @@ public class BlackGoku extends Boss {
         int y = this.zone.map.yPhysicInTop(x, this.location.y - 24);
         int drop = 190; 
         int quantity = Util.nextInt(20000, 30000);
-        if (Util.isTrue(5 , 100)) {
-        ItemMap it = ItemService.gI().randDoTLBoss(this.zone, 1, x, y, plKill.id);
+        ItemMap it = ItemService.gI().randDoTLBoss(this.zone, 1, x, y, plKill.id); // 100% đồ thần linh
         if (it != null) {
-        Service.gI().dropItemMap(zone, it);
-        }
+            Service.gI().dropItemMap(zone, it);
         }
         ItemMap itemMap = new ItemMap(this.zone, drop, quantity, x, y, plKill.id);
         Item item = ItemService.gI().createNewItem((short) drop);
